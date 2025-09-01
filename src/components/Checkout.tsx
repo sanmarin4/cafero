@@ -69,7 +69,7 @@ ${cartItems.map(item => {
 }).join('\n')}
 
 💰 TOTAL: ₱${totalPrice}
-${serviceType === 'delivery' ? `\n 🛵 DELIVERY FEE:` : ''}
+${serviceType === 'delivery' ? `🛵 DELIVERY FEE:` : ''}
 
 💳 Payment: ${selectedPaymentMethod?.name || paymentMethod}
 📸 Payment Screenshot: Please attach your payment receipt screenshot
