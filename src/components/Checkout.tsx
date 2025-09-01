@@ -45,7 +45,7 @@ const Checkout: React.FC<CheckoutProps> = ({ cartItems, totalPrice, onBack }) =>
       : '';
     
     const orderDetails = `
-🛒 M&C BAKEHOUSE ORDER
+🛒 NOM SUM ORDER
 
 👤 Customer: ${customerName}
 📞 Contact: ${contactNumber}
@@ -70,22 +70,21 @@ ${cartItems.map(item => {
 💰 TOTAL: ₱${totalPrice}
 
 💳 Payment: ${selectedPaymentMethod?.name || paymentMethod}
-🔗 Reference: ${referenceNumber}
+📸 Payment Screenshot: Please attach your payment receipt screenshot
 
 ${notes ? `📝 Notes: ${notes}` : ''}
 
-Please confirm this order to proceed. Thank you for choosing M&C Bakehouse! 🥐
+Please confirm this order to proceed. Thank you for choosing Nom Sum! 🥟
     `.trim();
 
     const encodedMessage = encodeURIComponent(orderDetails);
-    const messengerUrl = `https://m.me/MCBAKEHOUSE?text=${encodedMessage}`;
+    const messengerUrl = `https://m.me/NOMSUM?text=${encodedMessage}`;
     
     window.open(messengerUrl, '_blank');
     
   };
 
   const isDetailsValid = customerName && contactNumber && (serviceType !== 'delivery' || address) && (serviceType !== 'pickup' || (pickupTime !== 'custom' || customTime));
-  const isPaymentValid = referenceNumber;
 
   if (step === 'details') {
     return (
@@ -341,18 +340,10 @@ Please confirm this order to proceed. Thank you for choosing M&C Bakehouse! 🥐
           )}
 
           {/* Reference Number */}
-          <div>
-            <label className="block text-sm font-medium text-black mb-2">Payment Reference Number *</label>
-            <input
-              type="text"
-              value={referenceNumber}
-              onChange={(e) => setReferenceNumber(e.target.value)}
-              className="w-full px-4 py-3 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200"
-              placeholder="Enter payment reference number"
-              required
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Enter the reference number from your payment confirmation
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <h4 className="font-medium text-black mb-2">📸 Payment Proof Required</h4>
+            <p className="text-sm text-gray-700">
+              After making your payment, please take a screenshot of your payment receipt and attach it when you send your order via Messenger. This helps us verify and process your order quickly.
             </p>
           </div>
         </div>
@@ -403,18 +394,13 @@ Please confirm this order to proceed. Thank you for choosing M&C Bakehouse! 🥐
 
           <button
             onClick={handlePlaceOrder}
-            disabled={!isPaymentValid}
-            className={`w-full py-4 rounded-xl font-medium text-lg transition-all duration-200 transform ${
-              isPaymentValid
-                ? 'bg-red-600 text-white hover:bg-red-700 hover:scale-[1.02]'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            }`}
+            className="w-full py-4 rounded-xl font-medium text-lg transition-all duration-200 transform bg-red-600 text-white hover:bg-red-700 hover:scale-[1.02]"
           >
             Place Order via Messenger
           </button>
           
           <p className="text-xs text-gray-500 text-center mt-3">
-            You'll be redirected to Facebook Messenger to confirm your order
+            You'll be redirected to Facebook Messenger to confirm your order. Don't forget to attach your payment screenshot!
           </p>
         </div>
       </div>
