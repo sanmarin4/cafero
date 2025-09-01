@@ -16,6 +16,7 @@ const Checkout: React.FC<CheckoutProps> = ({ cartItems, totalPrice, onBack }) =>
   const [contactNumber, setContactNumber] = useState('');
   const [serviceType, setServiceType] = useState<ServiceType>('dine-in');
   const [address, setAddress] = useState('');
+  const [landmark, setLandmark] = useState('');
   const [pickupTime, setPickupTime] = useState('5-10');
   const [customTime, setCustomTime] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('gcash');
@@ -50,7 +51,7 @@ const Checkout: React.FC<CheckoutProps> = ({ cartItems, totalPrice, onBack }) =>
 👤 Customer: ${customerName}
 📞 Contact: ${contactNumber}
 📍 Service: ${serviceType.charAt(0).toUpperCase() + serviceType.slice(1)}
-${serviceType === 'delivery' ? `🏠 Address: ${address}` : ''}
+${serviceType === 'delivery' ? `🏠 Address: ${address}${landmark ? `\n🗺️ Landmark: ${landmark}` : ''}` : ''}
 ${serviceType === 'pickup' ? `⏰ Pickup Time: ${timeInfo}` : ''}
 
 
@@ -233,17 +234,30 @@ Please confirm this order to proceed. Thank you for choosing Nom Sum! 🥟
 
               {/* Delivery Address */}
               {serviceType === 'delivery' && (
-                <div>
-                  <label className="block text-sm font-medium text-black mb-2">Delivery Address *</label>
-                  <textarea
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    className="w-full px-4 py-3 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200"
-                    placeholder="Enter your complete delivery address"
-                    rows={3}
-                    required
-                  />
-                </div>
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-black mb-2">Delivery Address *</label>
+                    <textarea
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      className="w-full px-4 py-3 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200"
+                      placeholder="Enter your complete delivery address"
+                      rows={3}
+                      required
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-black mb-2">Landmark</label>
+                    <input
+                      type="text"
+                      value={landmark}
+                      onChange={(e) => setLandmark(e.target.value)}
+                      className="w-full px-4 py-3 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200"
+                      placeholder="e.g., Near McDonald's, Beside 7-Eleven, In front of school"
+                    />
+                  </div>
+                </>
               )}
 
               {/* Special Notes */}
@@ -358,7 +372,12 @@ Please confirm this order to proceed. Thank you for choosing Nom Sum! 🥟
               <p className="text-sm text-gray-600">Name: {customerName}</p>
               <p className="text-sm text-gray-600">Contact: {contactNumber}</p>
               <p className="text-sm text-gray-600">Service: {serviceType.charAt(0).toUpperCase() + serviceType.slice(1)}</p>
-              {serviceType === 'delivery' && <p className="text-sm text-gray-600">Address: {address}</p>}
+              {serviceType === 'delivery' && (
+                <>
+                  <p className="text-sm text-gray-600">Address: {address}</p>
+                  {landmark && <p className="text-sm text-gray-600">Landmark: {landmark}</p>}
+                </>
+              )}
               {serviceType === 'pickup' && (
                 <p className="text-sm text-gray-600">
                   Pickup Time: {pickupTime === 'custom' ? customTime : `${pickupTime} minutes`}
