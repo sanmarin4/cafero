@@ -54,12 +54,12 @@ const AdminDashboard: React.FC = () => {
   };
 
   const handleDeleteItem = async (id: string) => {
-    if (confirm('Are you sure you want to delete this item?')) {
+    if (confirm('Are you sure you want to delete this item? This action cannot be undone.')) {
       try {
-        setIsDeleting(true);
+        setIsProcessing(true);
         await deleteMenuItem(id);
       } catch (error) {
-        alert('Failed to delete item');
+        alert('Failed to delete item. Please try again.');
       } finally {
         setIsProcessing(false);
       }
@@ -97,7 +97,15 @@ const AdminDashboard: React.FC = () => {
       return;
     }
 
-    if (confirm(`Are you sure you want to delete ${selectedItems.length} item(s)? This action cannot be undone.`)) {
+    const itemNames = selectedItems.map(id => {
+      const item = menuItems.find(i => i.id === id);
+      return item ? item.name : 'Unknown Item';
+    }).slice(0, 5); // Show first 5 items
+    
+    const displayNames = itemNames.join(', ');
+    const moreItems = selectedItems.length > 5 ? ` and ${selectedItems.length - 5} more items` : '';
+    
+    if (confirm(`Are you sure you want to delete ${selectedItems.length} item(s)?\n\nItems to delete: ${displayNames}${moreItems}\n\nThis action cannot be undone.`)) {
       try {
         setIsProcessing(true);
         // Delete items one by one
@@ -105,9 +113,10 @@ const AdminDashboard: React.FC = () => {
           await deleteMenuItem(itemId);
         }
         setSelectedItems([]);
-        alert(`Successfully deleted ${selectedItems.length} item(s)`);
+        setShowBulkActions(false);
+        alert(`Successfully deleted ${selectedItems.length} item(s).`);
       } catch (error) {
-        alert('Failed to delete some items');
+        alert('Failed to delete some items. Please try again.');
       } finally {
         setIsProcessing(false);
       }
