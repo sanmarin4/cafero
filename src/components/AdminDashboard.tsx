@@ -19,7 +19,8 @@ const AdminDashboard: React.FC = () => {
   const [currentView, setCurrentView] = useState<'dashboard' | 'items' | 'add' | 'edit' | 'categories' | 'payments'>('dashboard');
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [showBulkActions, setShowBulkActions] = useState(false);
   const [formData, setFormData] = useState<Partial<MenuItem>>({
     name: '',
     description: '',
@@ -60,7 +61,7 @@ const AdminDashboard: React.FC = () => {
       } catch (error) {
         alert('Failed to delete item');
       } finally {
-        setIsDeleting(false);
+        setIsProcessing(false);
       }
     }
   };
@@ -90,7 +91,7 @@ const AdminDashboard: React.FC = () => {
     setSelectedItems([]);
   };
 
-  const handleBulkDelete = async () => {
+  const handleBulkRemove = async () => {
     if (selectedItems.length === 0) {
       alert('Please select items to delete');
       return;
@@ -98,7 +99,7 @@ const AdminDashboard: React.FC = () => {
 
     if (confirm(`Are you sure you want to delete ${selectedItems.length} item(s)? This action cannot be undone.`)) {
       try {
-        setIsDeleting(true);
+        setIsProcessing(true);
         // Delete items one by one
         for (const itemId of selectedItems) {
           await deleteMenuItem(itemId);
@@ -108,7 +109,34 @@ const AdminDashboard: React.FC = () => {
       } catch (error) {
         alert('Failed to delete some items');
       } finally {
-        setIsDeleting(false);
+        setIsProcessing(false);
+      }
+    }
+  };
+  const handleBulkCategoryChange = async (newCategoryId: string) => {
+    if (selectedItems.length === 0) {
+      alert('Please select items to update');
+      return;
+    }
+
+    const categoryName = categories.find(cat => cat.id === newCategoryId)?.name;
+    if (confirm(`Are you sure you want to change the category of ${selectedItems.length} item(s) to "${categoryName}"?`)) {
+      try {
+        setIsProcessing(true);
+        // Update category for each selected item
+        for (const itemId of selectedItems) {
+          const item = menuItems.find(i => i.id === itemId);
+          if (item) {
+            await updateMenuItem(itemId, { ...item, category: newCategoryId });
+          }
+        }
+        setSelectedItems([]);
+        setShowBulkActions(false);
+        alert(`Successfully updated category for ${selectedItems.length} item(s)`);
+      } catch (error) {
+        alert('Failed to update some items');
+      } finally {
+        setIsProcessing(false);
       }
     }
   };
@@ -124,10 +152,17 @@ const AdminDashboard: React.FC = () => {
   const handleSelectAll = () => {
     if (selectedItems.length === menuItems.length) {
       setSelectedItems([]);
+      setShowBulkActions(false);
     } else {
       setSelectedItems(menuItems.map(item => item.id));
+      setShowBulkActions(true);
     }
   };
+
+  // Update bulk actions visibility when selection changes
+  React.useEffect(() => {
+    setShowBulkActions(selectedItems.length > 0);
+  }, [selectedItems]);
 
   const addVariation = () => {
     const newVariation: Variation = {
@@ -485,15 +520,18 @@ const AdminDashboard: React.FC = () => {
                 <h1 className="text-2xl font-playfair font-semibold text-black">Menu Items</h1>
               </div>
               <div className="flex items-center space-x-3">
-                {selectedItems.length > 0 && (
-                  <button
-                    onClick={handleBulkDelete}
-                    disabled={isDeleting}
-                    className="flex items-center space-x-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    <span>{isDeleting ? 'Deleting...' : `Delete ${selectedItems.length} item(s)`}</span>
-                  </button>
+                {showBulkActions && (
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-gray-600">
+                      {selectedItems.length} item(s) selected
+                    </span>
+                    <button
+                      onClick={() => setShowBulkActions(!showBulkActions)}
+                      className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200"
+                    >
+                      <span>Bulk Actions</span>
+                    </button>
+                  </div>
                 )}
                 <button
                   onClick={handleAddItem}
@@ -508,6 +546,62 @@ const AdminDashboard: React.FC = () => {
         </div>
 
         <div className="max-w-7xl mx-auto px-4 py-8">
+          {/* Bulk Actions Panel */}
+          {showBulkActions && selectedItems.length > 0 && (
+            <div className="bg-white rounded-xl shadow-sm p-6 mb-6 border-l-4 border-blue-500">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-lg font-medium text-black mb-1">Bulk Actions</h3>
+                  <p className="text-sm text-gray-600">{selectedItems.length} item(s) selected</p>
+                </div>
+                
+                <div className="flex flex-col sm:flex-row gap-3">
+                  {/* Change Category */}
+                  <div className="flex items-center space-x-2">
+                    <label className="text-sm font-medium text-gray-700">Change Category:</label>
+                    <select
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          handleBulkCategoryChange(e.target.value);
+                          e.target.value = ''; // Reset selection
+                        }
+                      }}
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                      disabled={isProcessing}
+                    >
+                      <option value="">Select Category</option>
+                      {categories.map(cat => (
+                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  {/* Remove Items */}
+                  <button
+                    onClick={handleBulkRemove}
+                    disabled={isProcessing}
+                    className="flex items-center space-x-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    <span>{isProcessing ? 'Removing...' : 'Remove Selected'}</span>
+                  </button>
+                  
+                  {/* Clear Selection */}
+                  <button
+                    onClick={() => {
+                      setSelectedItems([]);
+                      setShowBulkActions(false);
+                    }}
+                    className="flex items-center space-x-2 bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors duration-200 text-sm"
+                  >
+                    <X className="h-4 w-4" />
+                    <span>Clear Selection</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="bg-white rounded-xl shadow-sm overflow-hidden">
             {/* Bulk Actions Bar */}
             {menuItems.length > 0 && (
@@ -549,12 +643,7 @@ const AdminDashboard: React.FC = () => {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">
-                      <input
-                        type="checkbox"
-                        checked={selectedItems.length === menuItems.length && menuItems.length > 0}
-                        onChange={handleSelectAll}
-                        className="rounded border-gray-300 text-green-600 focus:ring-green-500"
-                      />
+                      Select
                     </th>
                     <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">Name</th>
                     <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">Category</th>
@@ -568,6 +657,14 @@ const AdminDashboard: React.FC = () => {
                 <tbody className="divide-y divide-gray-200">
                   {menuItems.map((item) => (
                     <tr key={item.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedItems.includes(item.id)}
+                          onChange={() => handleSelectItem(item.id)}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                      </td>
                       <td className="px-6 py-4">
                         <div>
                           <div className="font-medium text-gray-900">{item.name}</div>
@@ -604,14 +701,14 @@ const AdminDashboard: React.FC = () => {
                         <div className="flex items-center space-x-2">
                           <button
                             onClick={() => handleEditItem(item)}
-                            disabled={isDeleting}
+                            disabled={isProcessing}
                             className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors duration-200"
                           >
                             <Edit className="h-4 w-4" />
                           </button>
                           <button
                             onClick={() => handleDeleteItem(item.id)}
-                            disabled={isDeleting}
+                            disabled={isProcessing}
                             className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors duration-200"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -641,14 +738,14 @@ const AdminDashboard: React.FC = () => {
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={() => handleEditItem(item)}
-                        disabled={isDeleting}
+                        disabled={isProcessing}
                         className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors duration-200"
                       >
                         <Edit className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => handleDeleteItem(item.id)}
-                        disabled={isDeleting}
+                        disabled={isProcessing}
                         className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors duration-200"
                       >
                         <Trash2 className="h-4 w-4" />
