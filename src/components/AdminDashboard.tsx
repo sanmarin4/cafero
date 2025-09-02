@@ -18,6 +18,8 @@ const AdminDashboard: React.FC = () => {
   const { categories } = useCategories();
   const [currentView, setCurrentView] = useState<'dashboard' | 'items' | 'add' | 'edit' | 'categories' | 'payments'>('dashboard');
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [formData, setFormData] = useState<Partial<MenuItem>>({
     name: '',
     description: '',
@@ -53,9 +55,12 @@ const AdminDashboard: React.FC = () => {
   const handleDeleteItem = async (id: string) => {
     if (confirm('Are you sure you want to delete this item?')) {
       try {
+        setIsDeleting(true);
         await deleteMenuItem(id);
       } catch (error) {
         alert('Failed to delete item');
+      } finally {
+        setIsDeleting(false);
       }
     }
   };
@@ -82,6 +87,46 @@ const AdminDashboard: React.FC = () => {
   const handleCancel = () => {
     setCurrentView(currentView === 'add' || currentView === 'edit' ? 'items' : 'dashboard');
     setEditingItem(null);
+    setSelectedItems([]);
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedItems.length === 0) {
+      alert('Please select items to delete');
+      return;
+    }
+
+    if (confirm(`Are you sure you want to delete ${selectedItems.length} item(s)? This action cannot be undone.`)) {
+      try {
+        setIsDeleting(true);
+        // Delete items one by one
+        for (const itemId of selectedItems) {
+          await deleteMenuItem(itemId);
+        }
+        setSelectedItems([]);
+        alert(`Successfully deleted ${selectedItems.length} item(s)`);
+      } catch (error) {
+        alert('Failed to delete some items');
+      } finally {
+        setIsDeleting(false);
+      }
+    }
+  };
+
+  const handleSelectItem = (itemId: string) => {
+    setSelectedItems(prev => 
+      prev.includes(itemId) 
+        ? prev.filter(id => id !== itemId)
+        : [...prev, itemId]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedItems.length === menuItems.length) {
+      setSelectedItems([]);
+    } else {
+      setSelectedItems(menuItems.map(item => item.id));
+    }
   };
 
   const addVariation = () => {
@@ -439,24 +484,78 @@ const AdminDashboard: React.FC = () => {
                 </button>
                 <h1 className="text-2xl font-playfair font-semibold text-black">Menu Items</h1>
               </div>
-              <button
-                onClick={handleAddItem}
-                className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors duration-200"
-              >
-                <Plus className="h-4 w-4" />
-                <span>Add New Item</span>
-              </button>
+              <div className="flex items-center space-x-3">
+                {selectedItems.length > 0 && (
+                  <button
+                    onClick={handleBulkDelete}
+                    disabled={isDeleting}
+                    className="flex items-center space-x-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    <span>{isDeleting ? 'Deleting...' : `Delete ${selectedItems.length} item(s)`}</span>
+                  </button>
+                )}
+                <button
+                  onClick={handleAddItem}
+                  className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors duration-200"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>Add New Item</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+            {/* Bulk Actions Bar */}
+            {menuItems.length > 0 && (
+              <div className="bg-gray-50 border-b border-gray-200 px-6 py-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedItems.length === menuItems.length && menuItems.length > 0}
+                        onChange={handleSelectAll}
+                        className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+                      />
+                      <span className="text-sm font-medium text-gray-700">
+                        Select All ({menuItems.length} items)
+                      </span>
+                    </label>
+                  </div>
+                  {selectedItems.length > 0 && (
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-gray-600">
+                        {selectedItems.length} item(s) selected
+                      </span>
+                      <button
+                        onClick={() => setSelectedItems([])}
+                        className="text-sm text-gray-500 hover:text-gray-700 transition-colors duration-200"
+                      >
+                        Clear Selection
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Desktop Table View */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
+                    <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">
+                      <input
+                        type="checkbox"
+                        checked={selectedItems.length === menuItems.length && menuItems.length > 0}
+                        onChange={handleSelectAll}
+                        className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+                      />
+                    </th>
                     <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">Name</th>
                     <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">Category</th>
                     <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">Base Price</th>
@@ -505,12 +604,14 @@ const AdminDashboard: React.FC = () => {
                         <div className="flex items-center space-x-2">
                           <button
                             onClick={() => handleEditItem(item)}
+                            disabled={isDeleting}
                             className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors duration-200"
                           >
                             <Edit className="h-4 w-4" />
                           </button>
                           <button
                             onClick={() => handleDeleteItem(item.id)}
+                            disabled={isDeleting}
                             className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors duration-200"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -526,25 +627,39 @@ const AdminDashboard: React.FC = () => {
             {/* Mobile Card View */}
             <div className="md:hidden">
               {menuItems.map((item) => (
-                <div key={item.id} className="p-4 border-b border-gray-200 last:border-b-0">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-gray-900 truncate">{item.name}</h3>
-                      <p className="text-sm text-gray-500 mt-1 line-clamp-2">{item.description}</p>
-                    </div>
-                    <div className="flex items-center space-x-2 ml-3">
+                <div key={item.id} className={`p-4 border-b border-gray-200 last:border-b-0 ${selectedItems.includes(item.id) ? 'bg-blue-50' : ''}`}>
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedItems.includes(item.id)}
+                        onChange={() => handleSelectItem(item.id)}
+                        className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+                      />
+                      <span className="text-sm text-gray-600">Select</span>
+                    </label>
+                    <div className="flex items-center space-x-2">
                       <button
                         onClick={() => handleEditItem(item)}
+                        disabled={isDeleting}
                         className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors duration-200"
                       >
                         <Edit className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => handleDeleteItem(item.id)}
+                        disabled={isDeleting}
                         className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors duration-200"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-medium text-gray-900 truncate">{item.name}</h3>
+                      <p className="text-sm text-gray-500 mt-1 line-clamp-2">{item.description}</p>
                     </div>
                   </div>
                   
