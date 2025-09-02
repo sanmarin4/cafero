@@ -9,8 +9,7 @@ const Hero: React.FC = () => {
           <span className="block text-red-600 mt-2">Nom Sum</span>
         </h1>
         <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto animate-slide-up">
-          From traditional dim sum to modern Asian fusion. Experience authentic flavors 
-          crafted with fresh ingredients and time-honored recipes.
+          Timeless Taiwanese Flavors, Freshly Made
         </p>
         <div className="flex justify-center">
           <a 
