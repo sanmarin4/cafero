@@ -3,7 +3,7 @@ import { Plus, Edit, Trash2, Save, X, ArrowLeft, Coffee, TrendingUp, Package, Us
 import { MenuItem, Variation, AddOn } from '../types';
 import { addOnCategories } from '../data/menuData';
 import { useMenu } from '../hooks/useMenu';
-import { useCategories } from '../hooks/useCategories';
+import { useCategories, Category } from '../hooks/useCategories';
 import ImageUpload from './ImageUpload';
 import CategoryManager from './CategoryManager';
 import PaymentMethodManager from './PaymentMethodManager';
@@ -31,11 +31,12 @@ const AdminDashboard: React.FC = () => {
 
   const handleAddItem = () => {
     setCurrentView('add');
+    const defaultCategory = categories.length > 0 ? categories[0].id : 'dim-sum';
     setFormData({
       name: '',
       description: '',
       basePrice: 0,
-      category: categories[0]?.id || 'hot-coffee',
+      category: defaultCategory,
       popular: false,
       available: true,
       variations: [],
