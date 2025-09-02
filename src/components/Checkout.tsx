@@ -62,7 +62,11 @@ ${cartItems.map(item => {
     itemDetails += ` (${item.selectedVariation.name})`;
   }
   if (item.selectedAddOns && item.selectedAddOns.length > 0) {
-    itemDetails += ` + ${item.selectedAddOns.map(addOn => addOn.name).join(', ')}`;
+    itemDetails += ` + ${item.selectedAddOns.map(addOn => 
+      addOn.quantity && addOn.quantity > 1 
+        ? `${addOn.name} x${addOn.quantity}`
+        : addOn.name
+    ).join(', ')}`;
   }
   itemDetails += ` x${item.quantity} - ₱${item.totalPrice * item.quantity}`;
   return itemDetails;
@@ -395,7 +399,15 @@ Please confirm this order to proceed. Thank you for choosing Nom Sum! 🥟
                   )}
                   {item.selectedAddOns && item.selectedAddOns.length > 0 && (
                     <p className="text-sm text-gray-600">
-                      Add-ons: {item.selectedAddOns.map(addOn => addOn.name).join(', ')}
+                      Add-ons: {item.selectedAddOns.map(addOn => 
+                        addOn.quantity && addOn.quantity > 1 
+                          ? `${addOn.name} x${addOn.quantity}`
+                          : addOn.name
+                      ).join(', ')}
+                        addOn.quantity && addOn.quantity > 1 
+                          ? `${addOn.name} x${addOn.quantity}`
+                          : addOn.name
+                      ).join(', ')}
                     </p>
                   )}
                   <p className="text-sm text-gray-600">₱{item.totalPrice} x {item.quantity}</p>

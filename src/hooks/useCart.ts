@@ -21,11 +21,22 @@ export const useCart = () => {
   const addToCart = useCallback((item: MenuItem, quantity: number = 1, variation?: Variation, addOns?: AddOn[]) => {
     const totalPrice = calculateItemPrice(item, variation, addOns);
     
+    // Group add-ons by name and sum their quantities
+    const groupedAddOns = addOns?.reduce((groups, addOn) => {
+      const existing = groups.find(g => g.id === addOn.id);
+      if (existing) {
+        existing.quantity = (existing.quantity || 1) + 1;
+      } else {
+        groups.push({ ...addOn, quantity: 1 });
+      }
+      return groups;
+    }, [] as (AddOn & { quantity: number })[]);
+    
     setCartItems(prev => {
       const existingItem = prev.find(cartItem => 
         cartItem.id === item.id && 
         cartItem.selectedVariation?.id === variation?.id &&
-        JSON.stringify(cartItem.selectedAddOns?.map(a => a.id).sort()) === JSON.stringify(addOns?.map(a => a.id).sort())
+        JSON.stringify(cartItem.selectedAddOns?.map(a => `${a.id}-${a.quantity || 1}`).sort()) === JSON.stringify(groupedAddOns?.map(a => `${a.id}-${a.quantity}`).sort())
       );
       
       if (existingItem) {
@@ -41,7 +52,7 @@ export const useCart = () => {
           id: uniqueId,
           quantity,
           selectedVariation: variation,
-          selectedAddOns: addOns || [],
+          selectedAddOns: groupedAddOns || [],
           totalPrice
         }];
       }

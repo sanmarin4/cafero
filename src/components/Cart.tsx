@@ -70,7 +70,11 @@ const Cart: React.FC<CartProps> = ({
                 )}
                 {item.selectedAddOns && item.selectedAddOns.length > 0 && (
                   <p className="text-sm text-gray-500 mb-1">
-                    Add-ons: {item.selectedAddOns.map(addOn => addOn.name).join(', ')}
+                    Add-ons: {item.selectedAddOns.map(addOn => 
+                      addOn.quantity && addOn.quantity > 1 
+                        ? `${addOn.name} x${addOn.quantity}`
+                        : addOn.name
+                    ).join(', ')}
                   </p>
                 )}
                 <p className="text-lg font-semibold text-black">₱{item.totalPrice} each</p>
