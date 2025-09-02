@@ -224,7 +224,7 @@ const AdminDashboard: React.FC = () => {
     e.preventDefault();
     if (password === 'NomSum@Admin!2025') {
       setIsAuthenticated(true);
-      localStorage.setItem('mc_bakehouse_admin_auth', 'true');
+      localStorage.setItem('beracah_admin_auth', 'true');
       setLoginError('');
     } else {
       setLoginError('Invalid password');
@@ -233,7 +233,7 @@ const AdminDashboard: React.FC = () => {
 
   const handleLogout = () => {
     setIsAuthenticated(false);
-    localStorage.removeItem('mc_bakehouse_admin_auth');
+    localStorage.removeItem('beracah_admin_auth');
     setPassword('');
     setCurrentView('dashboard');
   };
