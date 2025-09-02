@@ -404,10 +404,6 @@ Please confirm this order to proceed. Thank you for choosing Nom Sum! 🥟
                           ? `${addOn.name} x${addOn.quantity}`
                           : addOn.name
                       ).join(', ')}
-                        addOn.quantity && addOn.quantity > 1 
-                          ? `${addOn.name} x${addOn.quantity}`
-                          : addOn.name
-                      ).join(', ')}
                     </p>
                   )}
                   <p className="text-sm text-gray-600">₱{item.totalPrice} x {item.quantity}</p>
