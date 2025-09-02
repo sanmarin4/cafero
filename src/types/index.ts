@@ -9,6 +9,7 @@ export interface AddOn {
   name: string;
   price: number;
   category: string;
+  quantity?: number;
 }
 
 export interface MenuItem {

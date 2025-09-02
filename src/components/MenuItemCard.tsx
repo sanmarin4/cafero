@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Minus, X } from 'lucide-react';
+import { Plus, Minus, X, ShoppingCart } from 'lucide-react';
 import { MenuItem, Variation, AddOn } from '../types';
 
 interface MenuItemCardProps {
@@ -19,7 +19,7 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
   const [selectedVariation, setSelectedVariation] = useState<Variation | undefined>(
     item.variations?.[0]
   );
-  const [selectedAddOns, setSelectedAddOns] = useState<AddOn[]>([]);
+  const [selectedAddOns, setSelectedAddOns] = useState<(AddOn & { quantity: number })[]>([]);
 
   const calculatePrice = () => {
     let price = item.basePrice;
@@ -27,7 +27,7 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
       price = item.basePrice + selectedVariation.price;
     }
     selectedAddOns.forEach(addOn => {
-      price += addOn.price;
+      price += addOn.price * addOn.quantity;
     });
     return price;
   };
@@ -41,7 +41,11 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
   };
 
   const handleCustomizedAddToCart = () => {
-    onAddToCart(item, 1, selectedVariation, selectedAddOns);
+    // Convert selectedAddOns back to regular AddOn array for cart
+    const addOnsForCart: AddOn[] = selectedAddOns.flatMap(addOn => 
+      Array(addOn.quantity).fill({ ...addOn, quantity: undefined })
+    );
+    onAddToCart(item, 1, selectedVariation, addOnsForCart);
     setShowCustomization(false);
     setSelectedAddOns([]);
   };
@@ -56,13 +60,23 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
     }
   };
 
-  const toggleAddOn = (addOn: AddOn) => {
+  const updateAddOnQuantity = (addOn: AddOn, quantity: number) => {
     setSelectedAddOns(prev => {
-      const exists = prev.find(a => a.id === addOn.id);
-      if (exists) {
+      const existingIndex = prev.findIndex(a => a.id === addOn.id);
+      
+      if (quantity === 0) {
+        // Remove add-on if quantity is 0
         return prev.filter(a => a.id !== addOn.id);
+      }
+      
+      if (existingIndex >= 0) {
+        // Update existing add-on quantity
+        const updated = [...prev];
+        updated[existingIndex] = { ...updated[existingIndex], quantity };
+        return updated;
       } else {
-        return [...prev, addOn];
+        // Add new add-on with quantity
+        return [...prev, { ...addOn, quantity }];
       }
     });
   };
@@ -233,23 +247,56 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
                       </h5>
                       <div className="space-y-2">
                         {addOns.map((addOn) => (
-                          <label
+                          <div
                             key={addOn.id}
-                            className="flex items-center justify-between p-3 border border-red-300 rounded-lg hover:bg-red-50 cursor-pointer"
+                            className="flex items-center justify-between p-3 border border-red-300 rounded-lg hover:bg-red-50"
                           >
-                            <div className="flex items-center space-x-3">
-                              <input
-                                type="checkbox"
-                                checked={selectedAddOns.some(a => a.id === addOn.id)}
-                                onChange={() => toggleAddOn(addOn)}
-                                className="rounded border-red-300 text-red-600 focus:ring-red-500"
-                              />
+                            <div className="flex-1">
                               <span className="font-medium text-black">{addOn.name}</span>
+                              <div className="text-sm text-gray-600">
+                                {addOn.price > 0 ? `₱${addOn.price} each` : 'Free'}
+                              </div>
                             </div>
-                            <span className="text-black font-medium">
-                              {addOn.price > 0 ? `+₱${addOn.price}` : 'Free'}
-                            </span>
-                          </label>
+                            
+                            <div className="flex items-center space-x-2">
+                              {selectedAddOns.find(a => a.id === addOn.id) ? (
+                                <div className="flex items-center space-x-2 bg-red-100 rounded-full p-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const current = selectedAddOns.find(a => a.id === addOn.id);
+                                      updateAddOnQuantity(addOn, (current?.quantity || 1) - 1);
+                                    }}
+                                    className="p-1 hover:bg-red-200 rounded-full transition-colors duration-200"
+                                  >
+                                    <Minus className="h-3 w-3" />
+                                  </button>
+                                  <span className="font-medium text-black min-w-[20px] text-center text-sm">
+                                    {selectedAddOns.find(a => a.id === addOn.id)?.quantity || 0}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const current = selectedAddOns.find(a => a.id === addOn.id);
+                                      updateAddOnQuantity(addOn, (current?.quantity || 0) + 1);
+                                    }}
+                                    className="p-1 hover:bg-red-200 rounded-full transition-colors duration-200"
+                                  >
+                                    <Plus className="h-3 w-3" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => updateAddOnQuantity(addOn, 1)}
+                                  className="flex items-center space-x-1 px-3 py-1 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors duration-200 text-sm"
+                                >
+                                  <Plus className="h-3 w-3" />
+                                  <span>Add</span>
+                                </button>
+                              )}
+                            </div>
+                          </div>
                         ))}
                       </div>
                     </div>
@@ -267,9 +314,10 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
 
               <button
                 onClick={handleCustomizedAddToCart}
-                className="w-full bg-red-600 text-white py-3 rounded-xl hover:bg-red-700 transition-colors duration-200 font-medium"
+                className="w-full bg-red-600 text-white py-3 rounded-xl hover:bg-red-700 transition-colors duration-200 font-medium flex items-center justify-center space-x-2"
               >
-                Add to Cart - ₱{calculatePrice()}
+                <ShoppingCart className="h-4 w-4" />
+                <span>Add to Cart - ₱{calculatePrice()}</span>
               </button>
             </div>
           </div>
