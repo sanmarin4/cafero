@@ -46,7 +46,7 @@ const Checkout: React.FC<CheckoutProps> = ({ cartItems, totalPrice, onBack }) =>
       : '';
     
     const orderDetails = `
-🛒 NOM SUM ORDER
+🛒 ClickEats ORDER
 
 👤 Customer: ${customerName}
 📞 Contact: ${contactNumber}
@@ -80,7 +80,7 @@ ${serviceType === 'delivery' ? `🛵 DELIVERY FEE:` : ''}
 
 ${notes ? `📝 Notes: ${notes}` : ''}
 
-Please confirm this order to proceed. Thank you for choosing Nom Sum! 🥟
+Please confirm this order to proceed. Thank you for choosing ClickEats! 🥟
     `.trim();
 
     const encodedMessage = encodeURIComponent(orderDetails);
