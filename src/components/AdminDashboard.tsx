@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Edit, Trash2, Save, X, ArrowLeft, Coffee, TrendingUp, Package, Users, Lock, FolderOpen, CreditCard } from 'lucide-react';
+import { Plus, Edit, Trash2, Save, X, ArrowLeft, Coffee, TrendingUp, Package, Users, Lock, FolderOpen, CreditCard, Settings } from 'lucide-react';
 import { MenuItem, Variation, AddOn } from '../types';
 import { addOnCategories } from '../data/menuData';
 import { useMenu } from '../hooks/useMenu';
@@ -7,6 +7,7 @@ import { useCategories, Category } from '../hooks/useCategories';
 import ImageUpload from './ImageUpload';
 import CategoryManager from './CategoryManager';
 import PaymentMethodManager from './PaymentMethodManager';
+import SiteSettingsManager from './SiteSettingsManager';
 
 const AdminDashboard: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -16,7 +17,7 @@ const AdminDashboard: React.FC = () => {
   const [loginError, setLoginError] = useState('');
   const { menuItems, loading, addMenuItem, updateMenuItem, deleteMenuItem } = useMenu();
   const { categories } = useCategories();
-  const [currentView, setCurrentView] = useState<'dashboard' | 'items' | 'add' | 'edit' | 'categories' | 'payments'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'items' | 'add' | 'edit' | 'categories' | 'payments' | 'settings'>('dashboard');
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -401,6 +402,58 @@ const AdminDashboard: React.FC = () => {
               </div>
             </div>
 
+            {/* Discount Pricing Section */}
+            <div className="mb-8">
+              <h3 className="text-lg font-playfair font-medium text-black mb-4">Discount Pricing</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-black mb-2">Discount Price</label>
+                  <input
+                    type="number"
+                    value={formData.discountPrice || ''}
+                    onChange={(e) => setFormData({ ...formData, discountPrice: Number(e.target.value) || undefined })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                    placeholder="Enter discount price"
+                  />
+                </div>
+
+                <div className="flex items-center">
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={formData.discountActive || false}
+                      onChange={(e) => setFormData({ ...formData, discountActive: e.target.checked })}
+                      className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+                    />
+                    <span className="text-sm font-medium text-black">Enable Discount</span>
+                  </label>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-black mb-2">Discount Start Date</label>
+                  <input
+                    type="datetime-local"
+                    value={formData.discountStartDate || ''}
+                    onChange={(e) => setFormData({ ...formData, discountStartDate: e.target.value || undefined })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-black mb-2">Discount End Date</label>
+                  <input
+                    type="datetime-local"
+                    value={formData.discountEndDate || ''}
+                    onChange={(e) => setFormData({ ...formData, discountEndDate: e.target.value || undefined })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                  />
+                </div>
+              </div>
+              <p className="text-sm text-gray-500 mt-2">
+                Leave dates empty for indefinite discount period. Discount will only be active if "Enable Discount" is checked and current time is within the date range.
+              </p>
+            </div>
+
             <div className="mb-8">
               <label className="block text-sm font-medium text-black mb-2">Description *</label>
               <textarea
@@ -656,7 +709,7 @@ const AdminDashboard: React.FC = () => {
                     </th>
                     <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">Name</th>
                     <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">Category</th>
-                    <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">Base Price</th>
+                    <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">Price</th>
                     <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">Variations</th>
                     <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">Add-ons</th>
                     <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">Status</th>
@@ -683,7 +736,18 @@ const AdminDashboard: React.FC = () => {
                       <td className="px-6 py-4 text-sm text-gray-500">
                         {categories.find(cat => cat.id === item.category)?.name}
                       </td>
-                      <td className="px-6 py-4 text-sm font-medium text-gray-900">₱{item.basePrice}</td>
+                      <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                        <div className="flex flex-col">
+                          {item.isOnDiscount && item.discountPrice ? (
+                            <>
+                              <span className="text-red-600 font-semibold">₱{item.discountPrice}</span>
+                              <span className="text-gray-500 line-through text-xs">₱{item.basePrice}</span>
+                            </>
+                          ) : (
+                            <span>₱{item.basePrice}</span>
+                          )}
+                        </div>
+                      </td>
                       <td className="px-6 py-4 text-sm text-gray-500">
                         {item.variations?.length || 0} variations
                       </td>
@@ -778,7 +842,16 @@ const AdminDashboard: React.FC = () => {
                     </div>
                     <div>
                       <span className="text-gray-500">Price:</span>
-                      <span className="ml-1 font-medium text-gray-900">₱{item.basePrice}</span>
+                      <span className="ml-1 font-medium text-gray-900">
+                        {item.isOnDiscount && item.discountPrice ? (
+                          <span className="text-red-600">₱{item.discountPrice}</span>
+                        ) : (
+                          `₱${item.basePrice}`
+                        )}
+                        {item.isOnDiscount && item.discountPrice && (
+                          <span className="text-gray-500 line-through text-xs ml-1">₱{item.basePrice}</span>
+                        )}
+                      </span>
                     </div>
                     <div>
                       <span className="text-gray-500">Variations:</span>
@@ -823,6 +896,34 @@ const AdminDashboard: React.FC = () => {
   // Payment Methods View
   if (currentView === 'payments') {
     return <PaymentMethodManager onBack={() => setCurrentView('dashboard')} />;
+  }
+
+  // Site Settings View
+  if (currentView === 'settings') {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="bg-white shadow-sm border-b">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              <div className="flex items-center space-x-4">
+                <button
+                  onClick={() => setCurrentView('dashboard')}
+                  className="flex items-center space-x-2 text-gray-600 hover:text-black transition-colors duration-200"
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                  <span>Dashboard</span>
+                </button>
+                <h1 className="text-2xl font-playfair font-semibold text-black">Site Settings</h1>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="max-w-4xl mx-auto px-4 py-8">
+          <SiteSettingsManager />
+        </div>
+      </div>
+    );
   }
 
   // Dashboard View
@@ -937,6 +1038,13 @@ const AdminDashboard: React.FC = () => {
               >
                 <CreditCard className="h-5 w-5 text-gray-400" />
                 <span className="font-medium text-gray-900">Payment Methods</span>
+              </button>
+              <button
+                onClick={() => setCurrentView('settings')}
+                className="w-full flex items-center space-x-3 p-3 text-left hover:bg-gray-50 rounded-lg transition-colors duration-200"
+              >
+                <Settings className="h-5 w-5 text-gray-400" />
+                <span className="font-medium text-gray-900">Site Settings</span>
               </button>
             </div>
           </div>

@@ -51,6 +51,10 @@ export type Database = {
           popular: boolean;
           available: boolean;
           image_url: string | null;
+          discount_price: number | null;
+          discount_start_date: string | null;
+          discount_end_date: string | null;
+          discount_active: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -63,6 +67,10 @@ export type Database = {
           popular?: boolean;
           available?: boolean;
           image_url?: string | null;
+          discount_price?: number | null;
+          discount_start_date?: string | null;
+          discount_end_date?: string | null;
+          discount_active?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -75,6 +83,10 @@ export type Database = {
           popular?: boolean;
           available?: boolean;
           image_url?: string | null;
+          discount_price?: number | null;
+          discount_start_date?: string | null;
+          discount_end_date?: string | null;
+          discount_active?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -160,6 +172,29 @@ export type Database = {
           active?: boolean;
           sort_order?: number;
           created_at?: string;
+          updated_at?: string;
+        };
+      };
+      site_settings: {
+        Row: {
+          id: string;
+          value: string;
+          type: string;
+          description: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          id: string;
+          value: string;
+          type?: string;
+          description?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          value?: string;
+          type?: string;
+          description?: string | null;
           updated_at?: string;
         };
       };

@@ -23,27 +23,47 @@ export const useMenu = () => {
 
       if (itemsError) throw itemsError;
 
-      const formattedItems: MenuItem[] = items?.map(item => ({
-        id: item.id,
-        name: item.name,
-        description: item.description,
-        basePrice: item.base_price,
-        category: item.category,
-        popular: item.popular,
-        available: item.available ?? true,
-        image: item.image_url || undefined,
-        variations: item.variations?.map(v => ({
-          id: v.id,
-          name: v.name,
-          price: v.price
-        })) || [],
-        addOns: item.add_ons?.map(a => ({
-          id: a.id,
-          name: a.name,
-          price: a.price,
-          category: a.category
-        })) || []
-      })) || [];
+      const formattedItems: MenuItem[] = items?.map(item => {
+        // Calculate if discount is currently active
+        const now = new Date();
+        const discountStart = item.discount_start_date ? new Date(item.discount_start_date) : null;
+        const discountEnd = item.discount_end_date ? new Date(item.discount_end_date) : null;
+        
+        const isDiscountActive = item.discount_active && 
+          (!discountStart || now >= discountStart) && 
+          (!discountEnd || now <= discountEnd);
+        
+        // Calculate effective price
+        const effectivePrice = isDiscountActive && item.discount_price ? item.discount_price : item.base_price;
+
+        return {
+          id: item.id,
+          name: item.name,
+          description: item.description,
+          basePrice: item.base_price,
+          category: item.category,
+          popular: item.popular,
+          available: item.available ?? true,
+          image: item.image_url || undefined,
+          discountPrice: item.discount_price || undefined,
+          discountStartDate: item.discount_start_date || undefined,
+          discountEndDate: item.discount_end_date || undefined,
+          discountActive: item.discount_active || false,
+          effectivePrice,
+          isOnDiscount: isDiscountActive,
+          variations: item.variations?.map(v => ({
+            id: v.id,
+            name: v.name,
+            price: v.price
+          })) || [],
+          addOns: item.add_ons?.map(a => ({
+            id: a.id,
+            name: a.name,
+            price: a.price,
+            category: a.category
+          })) || []
+        };
+      }) || [];
 
       setMenuItems(formattedItems);
       setError(null);
@@ -67,7 +87,11 @@ export const useMenu = () => {
           category: item.category,
           popular: item.popular || false,
           available: item.available ?? true,
-          image_url: item.image || null
+          image_url: item.image || null,
+          discount_price: item.discountPrice || null,
+          discount_start_date: item.discountStartDate || null,
+          discount_end_date: item.discountEndDate || null,
+          discount_active: item.discountActive || false
         })
         .select()
         .single();
@@ -125,7 +149,11 @@ export const useMenu = () => {
           category: updates.category,
           popular: updates.popular,
           available: updates.available,
-          image_url: updates.image || null
+          image_url: updates.image || null,
+          discount_price: updates.discountPrice || null,
+          discount_start_date: updates.discountStartDate || null,
+          discount_end_date: updates.discountEndDate || null,
+          discount_active: updates.discountActive
         })
         .eq('id', id);
 

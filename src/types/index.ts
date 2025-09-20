@@ -23,6 +23,14 @@ export interface MenuItem {
   available?: boolean;
   variations?: Variation[];
   addOns?: AddOn[];
+  // Discount pricing fields
+  discountPrice?: number;
+  discountStartDate?: string;
+  discountEndDate?: string;
+  discountActive?: boolean;
+  // Computed effective price (calculated in the app)
+  effectivePrice?: number;
+  isOnDiscount?: boolean;
 }
 
 export interface CartItem extends MenuItem {
@@ -47,3 +55,20 @@ export interface OrderData {
 
 export type PaymentMethod = 'gcash' | 'maya' | 'bank-transfer';
 export type ServiceType = 'dine-in' | 'pickup' | 'delivery';
+
+// Site Settings Types
+export interface SiteSetting {
+  id: string;
+  value: string;
+  type: 'text' | 'image' | 'boolean' | 'number';
+  description?: string;
+  updated_at: string;
+}
+
+export interface SiteSettings {
+  site_name: string;
+  site_logo: string;
+  site_description: string;
+  currency: string;
+  currency_code: string;
+}
