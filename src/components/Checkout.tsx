@@ -84,7 +84,7 @@ Please confirm this order to proceed. Thank you for choosing Nom Sum! 🥟
     `.trim();
 
     const encodedMessage = encodeURIComponent(orderDetails);
-    const messengerUrl = `https://m.me/100082987099531?text=${encodedMessage}`;
+    const messengerUrl = `https://m.me/61579693577478?text=${encodedMessage}`;
     
     window.open(messengerUrl, '_blank');
     
