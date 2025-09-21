@@ -47,6 +47,9 @@ export interface OrderData {
   serviceType: 'dine-in' | 'pickup' | 'delivery';
   address?: string;
   pickupTime?: string;
+  // Dine-in specific fields
+  partySize?: number;
+  dineInTime?: string;
   paymentMethod: 'gcash' | 'maya' | 'bank-transfer';
   referenceNumber?: string;
   total: number;
