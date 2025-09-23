@@ -4,34 +4,21 @@ export default {
   theme: {
     extend: {
       colors: {
-        red: {
-          50: '#fef2f2',
-          100: '#fee2e2',
-          200: '#fecaca',
-          300: '#fca5a5',
-          400: '#f87171',
-          500: '#ef4444',
-          600: '#dc2626',
-          700: '#b91c1c',
-          800: '#991b1b',
-          900: '#7f1d1d'
-        },
-        yellow: {
-          50: '#fefce8',
-          100: '#fef3c7',
-          200: '#fde68a',
-          300: '#fcd34d',
-          400: '#fbbf24',
-          500: '#f59e0b',
-          600: '#d97706',
-          700: '#b45309',
-          800: '#92400e',
-          900: '#78350f'
+        ramen: {
+          red: '#D7263D',
+          dark: '#0B0A0A',
+          charcoal: '#111113',
+          cream: '#FFF3E0',
+          beige: '#F7E7CE',
+          gold: '#E0A106',
+          sesame: '#D1C7B7',
+          seaweed: '#1F2937',
+          kimchi: '#B81D24'
         }
       },
       fontFamily: {
-        'inter': ['Inter', 'sans-serif'],
-        'noto': ['Noto Serif', 'serif']
+        'pretendard': ['Pretendard', 'system-ui', 'sans-serif'],
+        'noto-kr': ['Noto Serif KR', 'serif']
       },
       animation: {
         'fade-in': 'fadeIn 0.5s ease-in-out',
