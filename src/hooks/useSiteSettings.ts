@@ -33,7 +33,7 @@ export const useSiteSettings = () => {
       }
 
       const settings: SiteSettings = {
-        site_name: data.find(s => s.id === 'site_name')?.value || 'Beracah Cafe',
+        site_name: data.find(s => s.id === 'site_name')?.value || 'CAFERO',
         site_logo: data.find(s => s.id === 'site_logo')?.value || '',
         site_description: data.find(s => s.id === 'site_description')?.value || '',
         currency: data.find(s => s.id === 'currency')?.value || 'PHP',

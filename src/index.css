@@ -1,33 +1,33 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Blueprint Cafe Custom Styles */
-/* Custom helpers for Blueprint Cafe palette */
-.bg-blueprint-off-white { background-color: #FEFEFE; }
-.bg-blueprint-cream { background-color: #F8FAFC; }
-.text-blueprint-blue { color: #1E40AF; }
-.text-blueprint-dark { color: #1E293B; }
-.border-blueprint-blue { border-color: #1E40AF; }
-.ring-blueprint-blue { --tw-ring-color: #1E40AF; }
+/* CAFERO Custom Styles */
+/* Custom helpers for CAFERO palette */
+.bg-blueprint-off-white { background-color: #FFFEF7; }
+.bg-blueprint-cream { background-color: #FAF7F0; }
+.text-blueprint-blue { color: #8B4513; }
+.text-blueprint-dark { color: #3D2914; }
+.border-blueprint-blue { border-color: #8B4513; }
+.ring-blueprint-blue { --tw-ring-color: #8B4513; }
 
-/* Blueprint Cafe Typography */
+/* CAFERO Typography */
 .font-blueprint-display {
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: 'Playfair Display', Georgia, serif;
   font-weight: 800;
   letter-spacing: -0.02em;
 }
 
 .font-blueprint-bold {
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: 'Playfair Display', Georgia, serif;
   font-weight: 700;
   letter-spacing: -0.01em;
 }
 
 .font-blueprint {
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: 'Playfair Display', Georgia, serif;
   font-weight: 400;
   letter-spacing: 0;
 }
@@ -56,4 +56,43 @@ img {
   top: -9999px;
   width: 1px;
   height: 1px;
+}
+
+/* CAFERO Paper Texture Effect */
+body {
+  background-color: #FFFEF7;
+  background-image: 
+    radial-gradient(circle at 1px 1px, rgba(139, 69, 19, 0.15) 1px, transparent 0);
+  background-size: 20px 20px;
+}
+
+/* Enhanced elegance for CAFERO theme */
+.cafero-card {
+  background: linear-gradient(145deg, #FFFEF7 0%, #FAF7F0 100%);
+  box-shadow: 
+    0 4px 6px rgba(139, 69, 19, 0.1),
+    0 1px 3px rgba(139, 69, 19, 0.08);
+  border: 1px solid rgba(139, 69, 19, 0.1);
+}
+
+.cafero-card:hover {
+  box-shadow: 
+    0 10px 25px rgba(139, 69, 19, 0.15),
+    0 4px 10px rgba(139, 69, 19, 0.1);
+  transform: translateY(-2px);
+}
+
+/* Elegant buttons */
+.cafero-btn-primary {
+  background: linear-gradient(145deg, #8B4513 0%, #A0522D 100%);
+  box-shadow: 
+    0 4px 15px rgba(139, 69, 19, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.cafero-btn-primary:hover {
+  background: linear-gradient(145deg, #654321 0%, #8B4513 100%);
+  box-shadow: 
+    0 6px 20px rgba(139, 69, 19, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }

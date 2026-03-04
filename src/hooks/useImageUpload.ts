@@ -1,14 +1,20 @@
 import { useState } from 'react';
-
-const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
-const UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`;
+import { uploadImage as supabaseUploadImage, deleteImage as supabaseDeleteImage, createStorageBucket } from '../lib/supabase';
 
 export const useImageUpload = () => {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
-  const uploadImage = async (file: File): Promise<string> => {
+  // Initialize storage bucket on first use
+  const initializeBucket = async () => {
+    try {
+      await createStorageBucket();
+    } catch (error) {
+      console.error('Error initializing storage bucket:', error);
+    }
+  };
+
+  const uploadImage = async (file: File, fileType: string = 'menu-item'): Promise<string> => {
     try {
       setUploading(true);
       setUploadProgress(0);
@@ -19,57 +25,41 @@ export const useImageUpload = () => {
         throw new Error('Please upload a valid image file (JPEG, PNG, WebP, or GIF)');
       }
 
-      // Validate file size (10MB limit — Cloudinary free tier supports up to 10MB)
-      const maxSize = 10 * 1024 * 1024;
+      // Validate file size (5MB limit for Supabase)
+      const maxSize = 5 * 1024 * 1024;
       if (file.size > maxSize) {
-        throw new Error('Image size must be less than 10MB');
+        throw new Error('Image size must be less than 5MB');
       }
 
-      // Build form data for Cloudinary unsigned upload
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('upload_preset', UPLOAD_PRESET);
-      formData.append('folder', 'blueprint-cafe');
+      // Initialize bucket if needed
+      await initializeBucket();
 
-      // Use XMLHttpRequest for real upload progress tracking
-      const url: string = await new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
+      // Generate a unique filename based on file type
+      const timestamp = Date.now();
+      const randomId = Math.random().toString(36).substring(2, 15);
+      const fileName = `${fileType}-${timestamp}-${randomId}`;
 
-        xhr.upload.onprogress = (event) => {
-          if (event.lengthComputable) {
-            const percent = Math.round((event.loaded / event.total) * 100);
-            setUploadProgress(percent);
-          }
-        };
+      // Simulate progress for better UX
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => Math.min(prev + 10, 90));
+      }, 200);
 
-        xhr.onload = () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            try {
-              const response = JSON.parse(xhr.responseText);
-              resolve(response.secure_url);
-            } catch {
-              reject(new Error('Failed to parse upload response'));
-            }
-          } else {
-            try {
-              const errorResponse = JSON.parse(xhr.responseText);
-              reject(new Error(errorResponse.error?.message || 'Upload failed'));
-            } catch {
-              reject(new Error(`Upload failed with status ${xhr.status}`));
-            }
-          }
-        };
+      try {
+        const imageUrl = await supabaseUploadImage(file, fileName);
+        
+        if (!imageUrl) {
+          throw new Error('Failed to get image URL after upload');
+        }
 
-        xhr.onerror = () => {
-          reject(new Error('Network error during upload'));
-        };
+        clearInterval(progressInterval);
+        setUploadProgress(100);
+        
+        return imageUrl;
+      } catch (uploadError) {
+        clearInterval(progressInterval);
+        throw uploadError;
+      }
 
-        xhr.open('POST', UPLOAD_URL);
-        xhr.send(formData);
-      });
-
-      setUploadProgress(100);
-      return url;
     } catch (error) {
       console.error('Error uploading image:', error);
       throw error;
@@ -79,11 +69,13 @@ export const useImageUpload = () => {
     }
   };
 
-  const deleteImage = async (_imageUrl: string): Promise<void> => {
-    // Cloudinary image deletion requires the Admin API (server-side only).
-    // The UI already handles removal gracefully by clearing the image reference,
-    // so this is intentionally a no-op on the client side.
-    return;
+  const deleteImage = async (imageUrl: string): Promise<void> => {
+    try {
+      await supabaseDeleteImage(imageUrl);
+    } catch (error) {
+      console.error('Error deleting image:', error);
+      // Don't throw error for deletion failures to avoid blocking UI
+    }
   };
 
   return {

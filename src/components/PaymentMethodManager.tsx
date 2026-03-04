@@ -186,10 +186,16 @@ const PaymentMethodManager: React.FC<PaymentMethodManagerProps> = ({ onBack }) =
                 <label className="block text-sm font-medium text-black mb-2">Account Number/Phone *</label>
                 <input
                   type="text"
+                  inputMode="numeric"
+                  pattern="\d*"
                   value={formData.account_number}
-                  onChange={(e) => setFormData({ ...formData, account_number: e.target.value })}
+                  onChange={(e) => {
+                    // allow only digits
+                    const digits = e.target.value.replace(/\D/g, '');
+                    setFormData({ ...formData, account_number: digits });
+                  }}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  placeholder="09XX XXX XXXX or Account: 1234-5678-9012"
+                  placeholder="09123456789"
                 />
               </div>
 
@@ -205,6 +211,10 @@ const PaymentMethodManager: React.FC<PaymentMethodManagerProps> = ({ onBack }) =
               </div>
 
               <div>
+                <label className="flex items-center space-x-2 text-sm font-medium text-black mb-2">
+                  <Upload className="h-4 w-4" />
+                  <span>QR Code Image</span>
+                </label>
                 <ImageUpload
                   currentImage={formData.qr_code_url}
                   onImageChange={(imageUrl) => setFormData({ ...formData, qr_code_url: imageUrl || '' })}

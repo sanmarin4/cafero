@@ -19,11 +19,13 @@ interface MenuProps {
   addToCart: (item: MenuItem, quantity?: number, variation?: any, addOns?: any[]) => void;
   cartItems: CartItem[];
   updateQuantity: (id: string, quantity: number) => void;
+  selectedCategory: string; // currently chosen by parent/subnav
+  onCategoryClick: (categoryId: string) => void; // parent handler
 }
 
-const Menu: React.FC<MenuProps> = ({ menuItems, addToCart, cartItems, updateQuantity }) => {
+const Menu: React.FC<MenuProps> = ({ menuItems, addToCart, cartItems, updateQuantity, selectedCategory, onCategoryClick }) => {
   const { categories } = useCategories();
-  const [activeCategory, setActiveCategory] = React.useState('hot-coffee');
+  const [activeCategory, setActiveCategory] = React.useState(selectedCategory || 'hot-coffee');
 
   // Preload images when menu items change
   React.useEffect(() => {
@@ -40,31 +42,36 @@ const Menu: React.FC<MenuProps> = ({ menuItems, addToCart, cartItems, updateQuan
     }
   }, [menuItems, activeCategory]);
 
+  // clicking a category inside Menu (if ever needed) should delegate to parent
   const handleCategoryClick = (categoryId: string) => {
-    setActiveCategory(categoryId);
-    const element = document.getElementById(categoryId);
-    if (element) {
-      const headerHeight = 64; // Header height
-      const mobileNavHeight = 60; // Mobile nav height
-      const offset = headerHeight + mobileNavHeight + 20; // Extra padding
-      const elementPosition = element.offsetTop - offset;
-      
-      window.scrollTo({
-        top: elementPosition,
-        behavior: 'smooth'
-      });
-    }
+    onCategoryClick(categoryId);
   };
 
+  // when available categories load, ensure activeCategory exists
   React.useEffect(() => {
     if (categories.length > 0) {
-      // Set default to dim-sum if it exists, otherwise first category
       const defaultCategory = categories.find(cat => cat.id === 'dim-sum') || categories[0];
       if (!categories.find(cat => cat.id === activeCategory)) {
         setActiveCategory(defaultCategory.id);
       }
     }
   }, [categories, activeCategory]);
+
+  // sync with prop and scroll into view when parent selection changes
+  React.useEffect(() => {
+    if (selectedCategory && selectedCategory !== activeCategory) {
+      // update internal state and scroll
+      setActiveCategory(selectedCategory);
+      const element = document.getElementById(selectedCategory);
+      if (element) {
+        const headerHeight = 64;
+        const mobileNavHeight = 60;
+        const offset = headerHeight + mobileNavHeight + 20;
+        const elementPosition = element.offsetTop - offset;
+        window.scrollTo({ top: elementPosition, behavior: 'smooth' });
+      }
+    }
+  }, [selectedCategory, activeCategory]);
 
   React.useEffect(() => {
     const handleScroll = () => {
@@ -82,16 +89,43 @@ const Menu: React.FC<MenuProps> = ({ menuItems, addToCart, cartItems, updateQuan
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [categories]);
 
 
   return (
     <>
+      {/* mobile nav bar for small screens */}
+      <MobileNav activeCategory={activeCategory} onCategoryClick={handleCategoryClick} />
 
       <main className="bg-blueprint-off-white min-h-screen">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+          {/* Show message if no items at all */}
+          {menuItems.length === 0 && (
+            <div className="text-center py-20">
+              <h2 className="text-3xl font-blueprint-display text-blueprint-blue mb-4">No Menu Items Yet</h2>
+              <p className="text-gray-600 mb-8">The menu is being prepared. Please check back soon or contact the administrator.</p>
+            </div>
+          )}
+          
           {categories.map((category) => {
             const categoryItems = menuItems.filter(item => item.category === category.id);
+            
+            // Show empty categories with a message instead of hiding them
+            if (categoryItems.length === 0 && menuItems.length > 0) {
+              return (
+                <section key={category.id} id={category.id} className="mb-20">
+                  <div className="flex items-center justify-center mb-12">
+                    <div className="text-center">
+                      <h3 className="text-4xl font-blueprint-display text-blueprint-blue mb-2">{category.name}</h3>
+                      <div className="w-24 h-1 bg-blueprint-blue mx-auto rounded-full"></div>
+                    </div>
+                  </div>
+                  <div className="text-center py-12 bg-white rounded-lg border-2 border-dashed border-gray-300">
+                    <p className="text-gray-500 text-lg">No items in this category yet</p>
+                  </div>
+                </section>
+              );
+            }
             
             if (categoryItems.length === 0) return null;
             

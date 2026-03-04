@@ -10,9 +10,33 @@ import FloatingCartButton from './components/FloatingCartButton';
 import AdminDashboard from './components/AdminDashboard';
 import { useMenu } from './hooks/useMenu';
 
+// TypeScript declarations for development test functions
+declare global {
+  interface Window {
+    testSupabaseConnection?: () => Promise<void>;
+    testMenuOperations?: () => Promise<void>;
+  }
+}
+
+// Import test functions for development
+if (import.meta.env.DEV) {
+  import('./lib/supabase-test')
+    .then((module) => {
+      window.testSupabaseConnection = module.testSupabaseConnection;
+      window.testMenuOperations = module.testMenuOperations;
+      console.log('🧪 Development Mode: Supabase test functions loaded');
+      console.log('   Available functions:');
+      console.log('   • testSupabaseConnection() - Test database & storage');
+      console.log('   • testMenuOperations() - Test CRUD operations');
+    })
+    .catch((error) => {
+      console.warn('Failed to load Supabase test functions:', error);
+    });
+}
+
 function MainApp() {
   const cart = useCart();
-  const { menuItems } = useMenu();
+  const { menuItems, useFallback } = useMenu();
   const [currentView, setCurrentView] = React.useState<'menu' | 'cart' | 'checkout'>('menu');
   const [selectedCategory, setSelectedCategory] = React.useState<string>('all');
 
@@ -36,6 +60,15 @@ function MainApp() {
         onCartClick={() => handleViewChange('cart')}
         onMenuClick={() => handleViewChange('menu')}
       />
+      
+      {/* Show notification when using sample data */}
+      {useFallback && (
+        <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 text-center">
+          <p className="font-medium">📝 Currently showing sample menu data</p>
+          <p className="text-sm">Visit <span className="font-semibold text-yellow-800">/admin</span> to add your own menu items and categories</p>
+        </div>
+      )}
+      
       <SubNav selectedCategory={selectedCategory} onCategoryClick={handleCategoryClick} />
       
       {currentView === 'menu' && (
@@ -44,6 +77,8 @@ function MainApp() {
           addToCart={cart.addToCart}
           cartItems={cart.cartItems}
           updateQuantity={cart.updateQuantity}
+          selectedCategory={selectedCategory}
+          onCategoryClick={handleCategoryClick}
         />
       )}
       
