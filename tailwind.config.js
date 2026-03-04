@@ -5,22 +5,22 @@ export default {
     extend: {
       colors: {
         blueprint: {
-          blue: '#1E40AF', // Royal blue for main accents
-          'blue-light': '#3B82F6', // Lighter blue for hover states
-          'blue-dark': '#1E3A8A', // Darker blue for text
-          'blue-50': '#EFF6FF', // Very light blue for backgrounds
-          'blue-100': '#DBEAFE', // Light blue for subtle backgrounds
-          'off-white': '#FEFEFE', // Off-white background
-          'cream': '#F8FAFC', // Slightly warmer off-white
-          'gray-soft': '#64748B', // Soft gray for secondary text
-          'gray-dark': '#1E293B' // Dark gray for primary text
+          blue: '#8B4513', // Rich brown for main accents (replaces blue)
+          'blue-light': '#A0522D', // Lighter brown for hover states
+          'blue-dark': '#654321', // Darker brown for text
+          'blue-50': '#FFF8F0', // Very light cream for backgrounds
+          'blue-100': '#F5E6D3', // Light cream for subtle backgrounds
+          'off-white': '#FFFEF7', // Warm off-white background
+          'cream': '#FAF7F0', // Slightly warmer off-white
+          'gray-soft': '#8B7355', // Warm gray for secondary text
+          'gray-dark': '#3D2914' // Dark brown for primary text
         }
       },
       fontFamily: {
-        'sans': ['Montserrat', 'system-ui', 'sans-serif'], // Default font family
-        'blueprint': ['Montserrat', 'system-ui', 'sans-serif'], // Clean sans-serif for menu items
-        'blueprint-bold': ['Montserrat', 'system-ui', 'sans-serif'], // Bold version for headings
-        'blueprint-display': ['Montserrat', 'system-ui', 'sans-serif'] // Display font for large text
+        'sans': ['Playfair Display', 'Georgia', 'serif'], // Elegant serif font family
+        'blueprint': ['Playfair Display', 'Georgia', 'serif'], // Elegant serif for menu items
+        'blueprint-bold': ['Playfair Display', 'Georgia', 'serif'], // Bold version for headings
+        'blueprint-display': ['Playfair Display', 'Georgia', 'serif'] // Display font for large text
       },
       animation: {
         'fade-in': 'fadeIn 0.5s ease-in-out',

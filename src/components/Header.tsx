@@ -23,17 +23,24 @@ const Header: React.FC<HeaderProps> = ({ cartItemsCount, onCartClick, onMenuClic
               <div className="w-12 h-12 bg-blueprint-blue/10 rounded-full animate-pulse" />
             ) : (
               <div className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center ring-2 ring-blueprint-blue/20">
-                {siteSettings?.site_logo ? (
-                  <img
-                    src={siteSettings.site_logo}
-                    alt="Site Logo"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-blueprint-blue flex items-center justify-center">
-                    <span className="text-white font-blueprint-bold text-lg">B</span>
-                  </div>
-                )}
+                <img
+                  src="/CAFERO.jpg"
+                  alt="CAFERO Logo"
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    // Fallback to database logo if CAFERO.jpg fails to load
+                    if (siteSettings?.site_logo) {
+                      e.currentTarget.src = siteSettings.site_logo;
+                    } else {
+                      // Hide image and show letter fallback
+                      e.currentTarget.style.display = 'none';
+                      e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                    }
+                  }}
+                />
+                <div className="w-full h-full bg-blueprint-blue flex items-center justify-center hidden">
+                  <span className="text-white font-blueprint-bold text-lg">C</span>
+                </div>
               </div>
             )}
             <div className="text-left">
@@ -41,7 +48,7 @@ const Header: React.FC<HeaderProps> = ({ cartItemsCount, onCartClick, onMenuClic
                 {loading ? (
                   <div className="w-32 h-8 bg-blueprint-blue/10 rounded animate-pulse" />
                 ) : (
-                  siteSettings?.site_name?.toUpperCase() || "BLUEPRINT"
+                  siteSettings?.site_name?.toUpperCase() || "CAFERO"
                 )}
               </h1>
 

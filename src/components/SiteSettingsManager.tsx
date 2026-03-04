@@ -60,8 +60,14 @@ const SiteSettingsManager: React.FC = () => {
       
       // Upload new logo if selected
       if (logoFile) {
-        const uploadedUrl = await uploadImage(logoFile, 'site-logo');
-        logoUrl = uploadedUrl;
+        try {
+          const uploadedUrl = await uploadImage(logoFile, 'site_logo');
+          logoUrl = uploadedUrl;
+        } catch (error) {
+          console.error('Error uploading logo:', error);
+          alert('Failed to upload logo. Please try again.');
+          return;
+        }
       }
 
       // Update all settings

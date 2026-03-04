@@ -2,6 +2,31 @@ import React, { useState } from 'react';
 import { Plus, Minus, X, ShoppingCart } from 'lucide-react';
 import { MenuItem, Variation, AddOn } from '../types';
 
+// simple reusable warning dialog component
+const WarningDialog: React.FC<{ message: string; onConfirm: () => void; onCancel: () => void }> = ({ message, onConfirm, onCancel }) => {
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-lg max-w-sm w-full p-6">
+        <p className="text-gray-800 mb-4">{message}</p>
+        <div className="flex justify-end space-x-3">
+          <button
+            onClick={onCancel}
+            className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+          >
+            Confirm
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 interface MenuItemCardProps {
   item: MenuItem;
   onAddToCart: (item: MenuItem, quantity?: number, variations?: Variation | Variation[], addOns?: AddOn[]) => void;
@@ -56,21 +81,35 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
     return price;
   };
 
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertMessage, setAlertMessage] = useState('');
+  const alertCallback = React.useRef<() => void>(() => {});
+
+  const promptAlert = (message: string, onConfirm: () => void) => {
+    setAlertMessage(message);
+    alertCallback.current = onConfirm;
+    setShowAlert(true);
+  };
+
   const handleAddToCart = () => {
-    if (item.variations?.length || item.addOns?.length) {
-      setShowCustomization(true);
-    } else {
-      onAddToCart(item, 1);
-    }
+    promptAlert(`Add \"${item.name}\" to your cart?`, () => {
+      if (item.variations?.length || item.addOns?.length) {
+        setShowCustomization(true);
+      } else {
+        onAddToCart(item, 1);
+      }
+    });
   };
 
   const handleCustomizedAddToCart = () => {
-    const addOnsForCart: AddOn[] = selectedAddOns.flatMap(addOn =>
-      Array(addOn.quantity).fill({ ...addOn, quantity: undefined })
-    );
-    onAddToCart(item, 1, selectedVariationsArray, addOnsForCart);
-    setShowCustomization(false);
-    setSelectedAddOns([]);
+    promptAlert(`Add \"${item.name}\" with customizations to your cart?`, () => {
+      const addOnsForCart: AddOn[] = selectedAddOns.flatMap(addOn =>
+        Array(addOn.quantity).fill({ ...addOn, quantity: undefined })
+      );
+      onAddToCart(item, 1, selectedVariationsArray, addOnsForCart);
+      setShowCustomization(false);
+      setSelectedAddOns([]);
+    });
   };
 
   const handleIncrement = () => {
@@ -115,12 +154,21 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
 
   return (
     <>
+      {showAlert && (
+        <WarningDialog
+          message={alertMessage}
+          onConfirm={() => {
+            setShowAlert(false);
+            alertCallback.current();
+          }}
+          onCancel={() => setShowAlert(false)}
+        />
+      )}
       <div className="w-full">
         {/* Card Container - Blueish Gradient Design */}
-        <div className={`relative aspect-square rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 group ${!item.available ? 'opacity-60' : ''}`}
+        <div className={`relative aspect-square rounded-2xl overflow-hidden cafero-card transition-all duration-300 group ${!item.available ? 'opacity-60' : ''}`}
              style={{
-               background: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 25%, #1E40AF 50%, #1E3A8A 75%, #1E2A5E 100%)',
-               boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)'
+               background: 'linear-gradient(135deg, #8B4513 0%, #A0522D 25%, #CD853F 50%, #8B4513 75%, #654321 100%)',
              }}>
           
           {/* Product Image - Covering the entire box */}
@@ -139,7 +187,7 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
               />
             ) : null}
             <div className={`absolute inset-0 flex items-center justify-center ${item.image ? 'hidden' : ''}`}>
-              <div className="text-6xl opacity-30" style={{ color: '#1E3A8A' }}>☕</div>
+              <div className="text-6xl opacity-30" style={{ color: '#8B4513' }}>☕</div>
             </div>
           </div>
           
@@ -175,7 +223,7 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
                   strokeWidth: '2.5px'
                 }}
               >
-                <Plus className="h-3.5 w-3.5 md:h-5 md:w-5" style={{ color: '#1E3A8A' }} />
+                <Plus className="h-3.5 w-3.5 md:h-5 md:w-5" style={{ color: '#8B4513' }} />
               </button>
             ) : (
               <div className="flex items-center space-x-0.5 md:space-x-1.5 bg-white rounded-full p-0.5 md:p-1.5" style={{ boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)' }}>
@@ -183,14 +231,14 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
                   onClick={handleDecrement}
                   className="w-5 h-5 md:w-7 md:h-7 hover:bg-gray-100 rounded-full transition-colors duration-200 flex items-center justify-center"
                 >
-                  <Minus className="h-2.5 w-2.5 md:h-3.5 md:w-3.5" style={{ color: '#1E3A8A' }} />
+                  <Minus className="h-2.5 w-2.5 md:h-3.5 md:w-3.5" style={{ color: '#8B4513' }} />
                 </button>
                 <span className="font-semibold min-w-[16px] md:min-w-[24px] text-center text-xs md:text-base" style={{ color: '#1E1E1E' }}>{quantity}</span>
                 <button
                   onClick={handleIncrement}
                   className="w-5 h-5 md:w-7 md:h-7 hover:bg-gray-100 rounded-full transition-colors duration-200 flex items-center justify-center"
                 >
-                  <Plus className="h-2.5 w-2.5 md:h-3.5 md:w-3.5" style={{ color: '#1E3A8A' }} />
+                  <Plus className="h-2.5 w-2.5 md:h-3.5 md:w-3.5" style={{ color: '#8B4513' }} />
                 </button>
               </div>
             )}
@@ -267,7 +315,7 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
               ) : (
                 <div
                   className="w-full h-full flex items-center justify-center"
-                  style={{ background: 'linear-gradient(135deg, #1E3A8A, #1E40AF)' }}
+                  style={{ background: 'linear-gradient(135deg, #8B4513, #A0522D)' }}
                 >
                   <span className="text-6xl opacity-20">☕</span>
                 </div>
@@ -323,7 +371,7 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
                     </h3>
                     <span
                       className="text-xs font-semibold px-2.5 py-1 rounded-full"
-                      style={{ background: 'rgba(30,58,138,0.08)', color: '#1E3A8A' }}
+                      style={{ background: 'rgba(139,69,19,0.08)', color: '#8B4513' }}
                     >
                       Pick 1
                     </span>
@@ -340,8 +388,8 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
                           }
                           className="relative p-4 rounded-2xl text-left transition-all duration-200 active:scale-95"
                           style={{
-                            background: isSelected ? '#1E3A8A' : '#fff',
-                            border: `2px solid ${isSelected ? '#1E3A8A' : '#EAEAE6'}`,
+                            background: isSelected ? '#8B4513' : '#fff',
+                            border: `2px solid ${isSelected ? '#8B4513' : '#EAEAE6'}`,
                             boxShadow: isSelected
                               ? '0 4px 18px rgba(30,58,138,0.28)'
                               : '0 1px 4px rgba(0,0,0,0.05)',
@@ -433,7 +481,7 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
                                     </button>
                                     <span
                                       className="w-6 text-center text-sm font-bold"
-                                      style={{ color: '#1E3A8A' }}
+                                      style={{ color: '#8B4513' }}
                                     >
                                       {selected.quantity}
                                     </span>
@@ -516,7 +564,7 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
                             ) : (
                               <div
                                 className="w-full h-full flex items-center justify-center"
-                                style={{ background: 'linear-gradient(135deg, #1E3A8A22, #1E40AF33)' }}
+                                style={{ background: 'linear-gradient(135deg, rgba(139,69,19,0.1), rgba(160,82,45,0.2))' }}
                               >
                                 <span className="text-2xl opacity-30">☕</span>
                               </div>
@@ -586,11 +634,11 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
               </div>
               <button
                 onClick={handleCustomizedAddToCart}
-                className="flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl font-semibold text-base transition-all duration-200 active:scale-95"
+                className="flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl font-semibold text-base transition-all duration-200 active:scale-95 cafero-btn-primary"
                 style={{
-                  background: '#1E3A8A',
+                  background: '#8B4513',
                   color: '#fff',
-                  boxShadow: '0 4px 22px rgba(30,58,138,0.38)',
+                  boxShadow: '0 4px 22px rgba(139,69,19,0.38)',
                 }}
               >
                 <ShoppingCart className="h-5 w-5" />

@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
-import { Plus, Edit, Trash2, Save, X, ArrowLeft, Coffee, TrendingUp, Package, Users, Lock, FolderOpen, CreditCard, Settings } from 'lucide-react';
+import {
+  Plus, Edit, Trash2, Save, X, ArrowLeft,
+  Coffee, TrendingUp, Package, Users,
+  Lock, FolderOpen, CreditCard, Settings
+} from 'lucide-react';
 import { MenuItem, Variation, AddOn } from '../types';
 import { addOnCategories } from '../data/menuData';
 import { useMenu } from '../hooks/useMenu';
-import { useCategories, Category } from '../hooks/useCategories';
+import { useCategories } from '../hooks/useCategories';
 import ImageUpload from './ImageUpload';
 import CategoryManager from './CategoryManager';
 import PaymentMethodManager from './PaymentMethodManager';
@@ -29,7 +33,7 @@ function groupVariationsIntoTypes(variations: Variation[]): VariationGroup[] {
 
 const AdminDashboard: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return localStorage.getItem('beracah_admin_auth') === 'true';
+    return localStorage.getItem('cafero_admin_auth') === 'true';
   });
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
@@ -80,8 +84,11 @@ const AdminDashboard: React.FC = () => {
       try {
         setIsProcessing(true);
         await deleteMenuItem(id);
+        alert('Item deleted successfully!');
       } catch (error) {
-        alert('Failed to delete item. Please try again.');
+        console.error('Delete error:', error);
+        const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+        alert(`Failed to delete item: ${errorMessage}`);
       } finally {
         setIsProcessing(false);
       }
@@ -89,27 +96,128 @@ const AdminDashboard: React.FC = () => {
   };
 
   const handleSaveItem = async () => {
+    console.log('=== STARTING SAVE PROCESS ===');
+    console.log('Form data:', formData);
+    
+    // Validate required fields
     if (!formData.name || !formData.description || !formData.basePrice) {
-      alert('Please fill in all required fields');
+      const missingFields = [];
+      if (!formData.name) missingFields.push('name');
+      if (!formData.description) missingFields.push('description');
+      if (!formData.basePrice) missingFields.push('price');
+      
+      alert(`Please fill in required fields: ${missingFields.join(', ')}`);
       return;
     }
 
-    // Flatten variationGroups into the variations array before saving
-    const flatVariations: Variation[] = variationGroups.flatMap(group =>
-      group.options.map(opt => ({ ...opt, type: group.type }))
-    );
-    const dataToSave = { ...formData, variations: flatVariations };
-
+    setIsProcessing(true);
+    
     try {
-      if (editingItem) {
-        await updateMenuItem(editingItem.id, dataToSave);
-      } else {
-        await addMenuItem(dataToSave as Omit<MenuItem, 'id'>);
+      console.log('=== VALIDATING INPUT ===');
+      
+      // Validate category exists
+      if (!categories.find(cat => cat.id === formData.category)) {
+        throw new Error(`Invalid category: ${formData.category}`);
       }
+      
+      // Validate price is a positive number
+      if (typeof formData.basePrice !== 'number' || formData.basePrice <= 0) {
+        throw new Error('Price must be a positive number');
+      }
+      
+      console.log('=== PREPARING DATA ===');
+      
+      // Flatten variationGroups into the variations array
+      const flatVariations: Variation[] = variationGroups.flatMap(group =>
+        group.options.map(opt => ({ ...opt, type: group.type }))
+      );
+      
+      // Prepare the data object
+      const dataToSave = {
+        name: formData.name.trim(),
+        description: formData.description.trim(),
+        basePrice: formData.basePrice,
+        category: formData.category,
+        popular: formData.popular || false,
+        available: formData.available ?? true,
+        image: formData.image || undefined, // This should already be a Supabase URL if uploaded
+        discountPrice: formData.discountPrice || undefined,
+        discountStartDate: formData.discountStartDate || undefined,
+        discountEndDate: formData.discountEndDate || undefined,
+        discountActive: formData.discountActive || false,
+        variations: flatVariations,
+        addOns: formData.addOns || []
+      };
+      
+      console.log('Data to save:', dataToSave);
+      
+      console.log('=== SAVING TO DATABASE ===');
+      
+      let result;
+      if (editingItem) {
+        console.log('Updating existing item:', editingItem.id);
+        result = await updateMenuItem(editingItem.id, dataToSave);
+        console.log('Update result:', result);
+        alert('Item updated successfully!');
+      } else {
+        console.log('Adding new item');
+        result = await addMenuItem(dataToSave as Omit<MenuItem, 'id'>);
+        console.log('Add result:', result);
+        alert('Item added successfully!');
+      }
+      
+      console.log('=== SAVE COMPLETED SUCCESSFULLY ===');
+      
+      // Reset form and navigate back
       setCurrentView('items');
       setEditingItem(null);
+      setFormData({
+        name: '',
+        description: '',
+        basePrice: 0,
+        category: categories.length > 0 ? categories[0].id : 'dim-sum',
+        popular: false,
+        available: true,
+        variations: [],
+        addOns: []
+      });
+      setVariationGroups([]);
+      
     } catch (error) {
-      alert('Failed to save item');
+      console.error('=== SAVE ERROR ===', error);
+      
+      // Enhanced error handling with specific error types
+      let errorMessage = 'An unknown error occurred';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        
+        // Check for specific Supabase errors
+        if (error.message.includes('duplicate key')) {
+          errorMessage = 'An item with this name already exists';
+        } else if (error.message.includes('permission denied')) {
+          errorMessage = 'Permission denied - check your database access';
+        } else if (error.message.includes('relation') && error.message.includes('does not exist')) {
+          errorMessage = 'Database table not found - check your Supabase setup';
+        } else if (error.message.includes('JWT')) {
+          errorMessage = 'Authentication error - check your Supabase credentials';
+        } else if (error.message.includes('violates row-level security')) {
+          errorMessage = 'Database security policy violation - check RLS policies';
+        }
+      }
+      
+      // Log the full error for debugging
+      console.error('Full error details:', {
+        name: error instanceof Error ? error.constructor?.name : typeof error,
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        cause: error instanceof Error ? (error as any).cause : undefined,
+        rawError: error
+      });
+      
+      alert(`Failed to save item: ${errorMessage}\n\nCheck the console for detailed error information.`);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -285,9 +393,9 @@ const AdminDashboard: React.FC = () => {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === 'BlueprintCafe@Admin!2025') {
+    if (password === 'admin2026') {
       setIsAuthenticated(true);
-      localStorage.setItem('beracah_admin_auth', 'true');
+      localStorage.setItem('cafero_admin_auth', 'true');
       setLoginError('');
     } else {
       setLoginError('Invalid password');
@@ -296,55 +404,55 @@ const AdminDashboard: React.FC = () => {
 
   const handleLogout = () => {
     setIsAuthenticated(false);
-    localStorage.removeItem('beracah_admin_auth');
+    localStorage.removeItem('cafero_admin_auth');
     setPassword('');
     setCurrentView('dashboard');
   };
 
   // Login Screen
   if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-md">
-          <div className="text-center mb-8">
-            <div className="mx-auto w-16 h-16 bg-green-600 rounded-full flex items-center justify-center mb-4">
-              <Lock className="h-8 w-8 text-white" />
-            </div>
-            <h1 className="text-2xl font-playfair font-semibold text-black">Admin Access</h1>
-            <p className="text-gray-600 mt-2">Enter password to access the admin dashboard</p>
+  return (
+    <div className="min-h-screen bg-amber-50 flex items-center justify-center">
+      <div className="bg-white rounded-xl shadow-sm border border-amber-200 p-8 w-full max-w-md">
+        <div className="text-center mb-8">
+          <div className="mx-auto w-16 h-16 bg-amber-700 rounded-full flex items-center justify-center mb-4">
+            <Lock className="h-8 w-8 text-white" />
           </div>
-          
-          <form onSubmit={handleLogin}>
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-black mb-2">Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
-                placeholder="Enter admin password"
-                required
-              />
-              {loginError && (
-                <p className="text-red-500 text-sm mt-2">{loginError}</p>
-              )}
-            </div>
-            
-            <button
-              type="submit"
-              className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium"
-            >
-              Access Dashboard
-            </button>
-          </form>
+          <h1 className="text-2xl font-semibold text-amber-900">Admin Access</h1>
+          <p className="text-amber-700 mt-2 text-sm">
+            Enter password to access dashboard
+          </p>
         </div>
+
+        <form onSubmit={handleLogin}>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full px-4 py-3 border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-600 focus:border-transparent mb-4"
+            placeholder="Enter admin password"
+            required
+          />
+
+          {loginError && (
+            <p className="text-red-600 text-sm mb-3">{loginError}</p>
+          )}
+
+          <button
+            type="submit"
+            className="w-full bg-amber-700 text-white py-3 rounded-lg hover:bg-amber-800 transition"
+          >
+            Access Dashboard
+          </button>
+        </form>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-amber-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4"></div>
           <p className="text-gray-600">Loading...</p>
@@ -356,7 +464,7 @@ const AdminDashboard: React.FC = () => {
   // Form View (Add/Edit)
   if (currentView === 'add' || currentView === 'edit') {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-amber-50">
         <div className="bg-white shadow-sm border-b">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-16">
@@ -375,7 +483,7 @@ const AdminDashboard: React.FC = () => {
               <div className="flex space-x-3">
                 <button
                   onClick={handleCancel}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200 flex items-center space-x-2"
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-amber-50 transition-colors duration-200 flex items-center space-x-2"
                 >
                   <X className="h-4 w-4" />
                   <span>Cancel</span>
@@ -436,7 +544,7 @@ const AdminDashboard: React.FC = () => {
                     type="checkbox"
                     checked={formData.popular || false}
                     onChange={(e) => setFormData({ ...formData, popular: e.target.checked })}
-                    className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+                    className="rounded border-gray-300 text-amber-600 focus:ring-green-500"
                   />
                   <span className="text-sm font-medium text-black">Mark as Popular</span>
                 </label>
@@ -448,7 +556,7 @@ const AdminDashboard: React.FC = () => {
                     type="checkbox"
                     checked={formData.available ?? true}
                     onChange={(e) => setFormData({ ...formData, available: e.target.checked })}
-                    className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+                    className="rounded border-gray-300 text-amber-600 focus:ring-green-500"
                   />
                   <span className="text-sm font-medium text-black">Available for Order</span>
                 </label>
@@ -476,7 +584,7 @@ const AdminDashboard: React.FC = () => {
                       type="checkbox"
                       checked={formData.discountActive || false}
                       onChange={(e) => setFormData({ ...formData, discountActive: e.target.checked })}
-                      className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+                      className="rounded border-gray-300 text-amber-600 focus:ring-green-500"
                     />
                     <span className="text-sm font-medium text-black">Enable Discount</span>
                   </label>
@@ -546,9 +654,9 @@ const AdminDashboard: React.FC = () => {
               )}
 
               {variationGroups.map((group) => (
-                <div key={group.id} className="mb-4 border border-gray-200 rounded-xl overflow-hidden">
+                <div key={group.id} className="mb-4 border border-amber-200 rounded-xl overflow-hidden">
                   {/* Type header */}
-                  <div className="flex items-center space-x-3 px-4 py-3 bg-gray-50 border-b border-gray-200">
+                  <div className="flex items-center space-x-3 px-4 py-3 bg-amber-50 border-b border-gray-200">
                     <input
                       type="text"
                       value={group.type}
@@ -599,7 +707,7 @@ const AdminDashboard: React.FC = () => {
                     ))}
                     <button
                       onClick={() => addOptionToGroup(group.id)}
-                      className="flex items-center space-x-1.5 mt-1 text-sm text-green-700 hover:text-green-800 transition-colors duration-200"
+                      className="flex items-center space-x-1.5 mt-1 text-sm text-amber-700 hover:text-green-800 transition-colors duration-200"
                     >
                       <Plus className="h-3.5 w-3.5" />
                       <span>Add Option</span>
@@ -623,7 +731,7 @@ const AdminDashboard: React.FC = () => {
               </div>
 
               {formData.addOns?.map((addOn, index) => (
-                <div key={addOn.id} className="flex items-center space-x-3 mb-3 p-4 bg-gray-50 rounded-lg">
+                <div key={addOn.id} className="flex items-center space-x-3 mb-3 p-4 bg-amber-50 rounded-lg">
                   <input
                     type="text"
                     value={addOn.name}
@@ -665,7 +773,7 @@ const AdminDashboard: React.FC = () => {
   // Items List View
   if (currentView === 'items') {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-amber-50">
         <div className="bg-white shadow-sm border-b">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-16">
@@ -752,7 +860,7 @@ const AdminDashboard: React.FC = () => {
                       setSelectedItems([]);
                       setShowBulkActions(false);
                     }}
-                    className="flex items-center space-x-2 bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors duration-200 text-sm"
+                    className="flex items-center space-x-2 bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors duration-200 text-sm"
                   >
                     <X className="h-4 w-4" />
                     <span>Clear Selection</span>
@@ -765,7 +873,7 @@ const AdminDashboard: React.FC = () => {
           <div className="bg-white rounded-xl shadow-sm overflow-hidden">
             {/* Bulk Actions Bar */}
             {menuItems.length > 0 && (
-              <div className="bg-gray-50 border-b border-gray-200 px-6 py-3">
+              <div className="bg-amber-50 border-b border-amber-200 px-6 py-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
                     <label className="flex items-center space-x-2">
@@ -773,7 +881,7 @@ const AdminDashboard: React.FC = () => {
                         type="checkbox"
                         checked={selectedItems.length === menuItems.length && menuItems.length > 0}
                         onChange={handleSelectAll}
-                        className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+                        className="rounded border-gray-300 text-amber-600 focus:ring-green-500"
                       />
                       <span className="text-sm font-medium text-gray-700">
                         Select All ({menuItems.length} items)
@@ -800,7 +908,7 @@ const AdminDashboard: React.FC = () => {
             {/* Desktop Table View */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50">
+                <thead className="bg-amber-50">
                   <tr>
                     <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">
                       Select
@@ -816,7 +924,7 @@ const AdminDashboard: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {menuItems.map((item) => (
-                    <tr key={item.id} className="hover:bg-gray-50">
+                    <tr key={item.id} className="hover:bg-amber-50">
                       <td className="px-6 py-4">
                         <input
                           type="checkbox"
@@ -873,7 +981,7 @@ const AdminDashboard: React.FC = () => {
                           <button
                             onClick={() => handleEditItem(item)}
                             disabled={isProcessing}
-                            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors duration-200"
+                            className="p-2 text-gray-400 hover:text-gray-600 hover: bg-amber-100 rounded transition-colors duration-200"
                           >
                             <Edit className="h-4 w-4" />
                           </button>
@@ -895,14 +1003,14 @@ const AdminDashboard: React.FC = () => {
             {/* Mobile Card View */}
             <div className="md:hidden">
               {menuItems.map((item) => (
-                <div key={item.id} className={`p-4 border-b border-gray-200 last:border-b-0 ${selectedItems.includes(item.id) ? 'bg-blue-50' : ''}`}>
+                <div key={item.id} className={`p-4 border-b border-amber-200 last:border-b-0 ${selectedItems.includes(item.id) ? 'bg-blue-50' : ''}`}>
                   <div className="flex items-center justify-between mb-3">
                     <label className="flex items-center space-x-2">
                       <input
                         type="checkbox"
                         checked={selectedItems.includes(item.id)}
                         onChange={() => handleSelectItem(item.id)}
-                        className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+                        className="rounded border-gray-300 text-amber-600 focus:ring-green-500"
                       />
                       <span className="text-sm text-gray-600">Select</span>
                     </label>
@@ -910,7 +1018,7 @@ const AdminDashboard: React.FC = () => {
                       <button
                         onClick={() => handleEditItem(item)}
                         disabled={isProcessing}
-                        className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors duration-200"
+                        className="p-2 text-gray-400 hover:text-gray-600 hover: bg-amber-100 rounded transition-colors duration-200"
                       >
                         <Edit className="h-4 w-4" />
                       </button>
@@ -999,7 +1107,7 @@ const AdminDashboard: React.FC = () => {
   // Site Settings View
   if (currentView === 'settings') {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-amber-50">
         <div className="bg-white shadow-sm border-b">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-16">
@@ -1026,7 +1134,7 @@ const AdminDashboard: React.FC = () => {
 
   // Dashboard View
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-amber-50">
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
@@ -1111,35 +1219,35 @@ const AdminDashboard: React.FC = () => {
             <div className="space-y-3">
               <button
                 onClick={handleAddItem}
-                className="w-full flex items-center space-x-3 p-3 text-left hover:bg-gray-50 rounded-lg transition-colors duration-200"
+                className="w-full flex items-center space-x-3 p-3 text-left hover:bg-amber-50 rounded-lg transition-colors duration-200"
               >
                 <Plus className="h-5 w-5 text-gray-400" />
                 <span className="font-medium text-gray-900">Add New Menu Item</span>
               </button>
               <button
                 onClick={() => setCurrentView('items')}
-                className="w-full flex items-center space-x-3 p-3 text-left hover:bg-gray-50 rounded-lg transition-colors duration-200"
+                className="w-full flex items-center space-x-3 p-3 text-left hover:bg-amber-50 rounded-lg transition-colors duration-200"
               >
                 <Package className="h-5 w-5 text-gray-400" />
                 <span className="font-medium text-gray-900">Manage Menu Items</span>
               </button>
               <button
                 onClick={() => setCurrentView('categories')}
-                className="w-full flex items-center space-x-3 p-3 text-left hover:bg-gray-50 rounded-lg transition-colors duration-200"
+                className="w-full flex items-center space-x-3 p-3 text-left hover:bg-amber-50 rounded-lg transition-colors duration-200"
               >
                 <FolderOpen className="h-5 w-5 text-gray-400" />
                 <span className="font-medium text-gray-900">Manage Categories</span>
               </button>
               <button
                 onClick={() => setCurrentView('payments')}
-                className="w-full flex items-center space-x-3 p-3 text-left hover:bg-gray-50 rounded-lg transition-colors duration-200"
+                className="w-full flex items-center space-x-3 p-3 text-left hover:bg-amber-50 rounded-lg transition-colors duration-200"
               >
                 <CreditCard className="h-5 w-5 text-gray-400" />
                 <span className="font-medium text-gray-900">Payment Methods</span>
               </button>
               <button
                 onClick={() => setCurrentView('settings')}
-                className="w-full flex items-center space-x-3 p-3 text-left hover:bg-gray-50 rounded-lg transition-colors duration-200"
+                className="w-full flex items-center space-x-3 p-3 text-left hover:bg-amber-50 rounded-lg transition-colors duration-200"
               >
                 <Settings className="h-5 w-5 text-gray-400" />
                 <span className="font-medium text-gray-900">Site Settings</span>

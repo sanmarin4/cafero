@@ -2,38 +2,38 @@ import React from 'react';
 
 const Hero: React.FC = () => {
   return (
-    <section className="relative bg-gradient-to-br from-blueprint-off-white to-blueprint-cream py-24 px-4">
+    <section className="relative bg-gradient-to-br from-blueprint-off-white via-blueprint-cream to-blueprint-off-white py-32 px-4">
       <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-16">
-          <h1 className="text-6xl md:text-7xl font-blueprint-display text-blueprint-blue mb-6 animate-fade-in">
+        <div className="text-center mb-20">
+          <h1 className="text-7xl md:text-8xl font-blueprint-display text-blueprint-blue mb-8 animate-fade-in tracking-wide">
             MENU
           </h1>
-          <div className="inline-flex items-center justify-center mb-8">
-            <div className="bg-blueprint-blue rounded-full px-8 py-3">
-              <h2 className="text-2xl font-blueprint-bold text-white">BLUEPRINT</h2>
-              <p className="text-sm font-blueprint text-blue-100 -mt-1">CAFE</p>
+          <div className="inline-flex items-center justify-center mb-12">
+            <div className="bg-blueprint-blue rounded-full px-12 py-4 shadow-lg">
+              <h2 className="text-3xl font-blueprint-bold text-blueprint-cream tracking-wider">CAFERO</h2>
+              <p className="text-sm font-blueprint text-blueprint-cream opacity-90 -mt-1 tracking-widest">SNACKS & COFFEE</p>
             </div>
           </div>
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="text-center lg:text-left">
-            <p className="text-xl font-blueprint text-blueprint-gray-soft mb-8 animate-slide-up">
-              Crafted coffee experiences with premium beans and artisanal brewing methods. 
-              From classic espresso to innovative specialty drinks.
+            <p className="text-xl font-blueprint text-blueprint-gray-soft mb-10 animate-slide-up leading-relaxed">
+              Experience the finest coffee and snacks crafted with passion and premium ingredients.
+              From artisanal brews to delicious treats, discover the CAFERO difference.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+            <div className="flex flex-col sm:flex-row gap-6 justify-center lg:justify-start">
               <a 
                 href="#coffee-classics"
-                className="bg-blueprint-blue text-white px-8 py-4 rounded-lg hover:bg-blueprint-blue-dark transition-all duration-300 transform hover:scale-105 font-blueprint-bold text-lg"
+                className="bg-blueprint-blue text-blueprint-cream px-10 py-4 rounded-lg hover:bg-blueprint-blue-dark transition-all duration-300 transform hover:scale-105 font-blueprint-bold text-lg shadow-lg"
               >
-                Coffee Classics
+                Coffee & Beverages
               </a>
               <a 
                 href="#specialty-drinks"
-                className="border-2 border-blueprint-blue text-blueprint-blue px-8 py-4 rounded-lg hover:bg-blueprint-blue hover:text-white transition-all duration-300 transform hover:scale-105 font-blueprint-bold text-lg"
+                className="border-2 border-blueprint-blue text-blueprint-blue px-10 py-4 rounded-lg hover:bg-blueprint-blue hover:text-blueprint-cream transition-all duration-300 transform hover:scale-105 font-blueprint-bold text-lg"
               >
-                Specialty Drinks
+                Snacks & Treats
               </a>
             </div>
           </div>
