@@ -33,7 +33,7 @@ const Menu: React.FC<MenuProps> = ({ menuItems, addToCart, cartItems, updateQuan
       // Preload images for visible category first
       const visibleItems = menuItems.filter(item => item.category === activeCategory);
       preloadImages(visibleItems);
-      
+
       // Then preload other images after a short delay
       setTimeout(() => {
         const otherItems = menuItems.filter(item => item.category !== activeCategory);
@@ -97,48 +97,49 @@ const Menu: React.FC<MenuProps> = ({ menuItems, addToCart, cartItems, updateQuan
       {/* mobile nav bar for small screens */}
       <MobileNav activeCategory={activeCategory} onCategoryClick={handleCategoryClick} />
 
-      <main className="bg-blueprint-off-white min-h-screen">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <main className="bg-theme min-h-screen w-full">
+        <div className="w-full px-6 sm:px-12 lg:px-16 xl:px-24 py-16">
           {/* Show message if no items at all */}
           {menuItems.length === 0 && (
-            <div className="text-center py-20">
-              <h2 className="text-3xl font-blueprint-display text-blueprint-blue mb-4">No Menu Items Yet</h2>
-              <p className="text-gray-600 mb-8">The menu is being prepared. Please check back soon or contact the administrator.</p>
+            <div className="text-center py-20 text-theme">
+              <h2 className="text-3xl font-blueprint-display accent-theme mb-4">No Menu Items Yet</h2>
+              <p className="text-theme mb-8" style={{ color: 'var(--secondary-text)' }}>The menu is being prepared. Please check back soon or contact the administrator.</p>
             </div>
           )}
-          
+
           {categories.map((category) => {
             const categoryItems = menuItems.filter(item => item.category === category.id);
-            
+
             // Show empty categories with a message instead of hiding them
             if (categoryItems.length === 0 && menuItems.length > 0) {
               return (
-                <section key={category.id} id={category.id} className="mb-20">
-                  <div className="flex items-center justify-center mb-12">
+                <section key={category.id} id={category.id} className="menu-section mb-32 px-4 lg:px-8">
+                  <div className="flex items-center justify-center mb-20">
                     <div className="text-center">
-                      <h3 className="text-4xl font-blueprint-display text-blueprint-blue mb-2">{category.name}</h3>
-                      <div className="w-24 h-1 bg-blueprint-blue mx-auto rounded-full"></div>
+                      <h3 className="text-4xl font-blueprint-display accent-theme mb-4">{category.name}</h3>
+                      <div className="w-24 h-1 mt-2 bg-[#8B4513] mx-auto rounded-full"></div>
                     </div>
                   </div>
-                  <div className="text-center py-12 bg-white rounded-lg border-2 border-dashed border-gray-300">
-                    <p className="text-gray-500 text-lg">No items in this category yet</p>
+                  <div className="text-center py-12 bg-card-theme rounded-lg border-2 border-dashed" style={{ borderColor: 'var(--secondary-text)' }}>
+                    <p className="text-theme text-lg" style={{ color: 'var(--secondary-text)' }}>No items in this category yet</p>
                   </div>
                 </section>
               );
             }
-            
+
             if (categoryItems.length === 0) return null;
-            
+
             return (
-              <section key={category.id} id={category.id} className="mb-20">
-                <div className="flex items-center justify-center mb-12">
+              <section key={category.id} id={category.id} className="menu-section mb-32 px-4 lg:px-8">
+                <div className="flex items-center justify-center mb-20">
                   <div className="text-center">
-                    <h3 className="text-4xl font-blueprint-display text-blueprint-blue mb-2">{category.name}</h3>
-                    <div className="w-24 h-1 bg-blueprint-blue mx-auto rounded-full"></div>
+                    <h3 className="text-4xl font-blueprint-display accent-theme mb-4">{category.name}</h3>
+                    <div className="w-24 h-1 mt-2 bg-[#8B4513] mx-auto rounded-full"></div>
                   </div>
                 </div>
-                
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-8 lg:gap-12 w-full">
+                  {/* center items and add larger gap for breathing room */}
                   {categoryItems.map((item) => {
                     const cartItem = cartItems.find(cartItem => cartItem.id === item.id);
                     return (

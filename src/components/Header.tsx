@@ -1,6 +1,7 @@
-import React from 'react';
-import { ShoppingCart } from 'lucide-react';
-import { useSiteSettings } from '../hooks/useSiteSettings';
+import React, { useContext } from "react";
+import { ShoppingCart, Sun, Moon } from "lucide-react";
+import { useSiteSettings } from "../hooks/useSiteSettings";
+import { ThemeContext } from "../contexts/ThemeContext";
 
 interface HeaderProps {
   cartItemsCount: number;
@@ -8,69 +9,81 @@ interface HeaderProps {
   onMenuClick: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ cartItemsCount, onCartClick, onMenuClick }) => {
+const Header: React.FC<HeaderProps> = ({
+  cartItemsCount,
+  onCartClick,
+  onMenuClick,
+}) => {
   const { siteSettings, loading } = useSiteSettings();
+  const { theme, toggleTheme } = useContext(ThemeContext);
 
   return (
-    <header className="sticky top-0 z-50 bg-blueprint-off-white/95 backdrop-blur-md border-b border-blueprint-blue/20 shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-50 bg-theme border-b border-blueprint-blue/20 backdrop-blur-md">
+      <div className="w-full px-6 sm:px-12 lg:px-16 xl:px-24">
+
         <div className="flex items-center justify-between h-20">
+
+          {/* Logo + Name */}
           <button
             onClick={onMenuClick}
-            className="flex items-center space-x-4 text-blueprint-dark hover:text-blueprint-blue transition-colors duration-200"
+            className="flex items-center gap-4"
           >
             {loading ? (
               <div className="w-12 h-12 bg-blueprint-blue/10 rounded-full animate-pulse" />
             ) : (
-              <div className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center ring-2 ring-blueprint-blue/20">
+              <div className="w-12 h-12 rounded-full overflow-hidden ring-2 ring-[#8B4513]/20">
                 <img
                   src="/CAFERO.jpg"
                   alt="CAFERO Logo"
                   className="w-full h-full object-cover"
-                  onError={(e) => {
-                    // Fallback to database logo if CAFERO.jpg fails to load
-                    if (siteSettings?.site_logo) {
-                      e.currentTarget.src = siteSettings.site_logo;
-                    } else {
-                      // Hide image and show letter fallback
-                      e.currentTarget.style.display = 'none';
-                      e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                    }
-                  }}
                 />
-                <div className="w-full h-full bg-blueprint-blue flex items-center justify-center hidden">
-                  <span className="text-white font-blueprint-bold text-lg">C</span>
-                </div>
               </div>
             )}
-            <div className="text-left">
-              <h1 className="text-3xl font-blueprint-display text-blueprint-blue">
-                {loading ? (
-                  <div className="w-32 h-8 bg-blueprint-blue/10 rounded animate-pulse" />
-                ) : (
-                  siteSettings?.site_name?.toUpperCase() || "CAFERO"
-                )}
-              </h1>
 
-            </div>
+            <h1 className="text-3xl font-bold tracking-tight text-[#8B4513]">
+              {siteSettings?.site_name?.toUpperCase() || "CAFERO"}
+            </h1>
           </button>
 
-          <div className="flex items-center space-x-4">
+          {/* Right Section */}
+          <div className="flex items-center gap-4">
+
+            {/* Store Hours */}
             <div className="hidden sm:block text-right">
-              <p className="text-sm font-blueprint text-blueprint-gray-soft">OPEN DAILY</p>
-              <p className="text-sm font-blueprint-bold text-blueprint-dark">8:00AM - 11:00PM</p>
+              <p className="text-sm font-blueprint text-theme opacity-70">
+                OPEN DAILY
+              </p>
+              <p className="text-sm font-blueprint-bold text-theme">
+                8:00AM - 11:00PM
+              </p>
             </div>
+
+            {/* Theme Toggle */}
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-full hover:bg-blueprint-blue/10"
+            >
+              {theme === "pink" ? (
+                <Sun className="h-5 w-5 accent-theme" />
+              ) : (
+                <Moon className="h-5 w-5 text-[#8B4513]" />
+              )}
+            </button>
+
+            {/* Cart */}
             <button
               onClick={onCartClick}
-              className="relative p-3 text-blueprint-gray-soft hover:text-blueprint-blue hover:bg-blueprint-blue/5 rounded-full transition-all duration-200"
+              className="relative p-3 rounded-full hover:bg-blueprint-blue/10"
             >
-              <ShoppingCart className="h-6 w-6" />
+              <ShoppingCart className="h-6 w-6 text-[#8B4513]" />
+
               {cartItemsCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-blueprint-blue text-white text-xs rounded-full h-5 w-5 flex items-center justify-center animate-bounce-gentle font-blueprint-bold">
+                <span className="absolute -top-1 -right-1 bg-[#8B4513] text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                   {cartItemsCount}
                 </span>
               )}
             </button>
+
           </div>
         </div>
       </div>

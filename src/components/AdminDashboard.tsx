@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import {
   Plus, Edit, Trash2, Save, X, ArrowLeft,
@@ -74,7 +75,22 @@ const AdminDashboard: React.FC = () => {
 
   const handleEditItem = (item: MenuItem) => {
     setEditingItem(item);
-    setFormData(item);
+    // Ensure form data is properly structured for editing
+    setFormData({
+      name: item.name || '',
+      description: item.description || '',
+      basePrice: item.basePrice || 0,
+      category: item.category || 'hot-coffee',
+      popular: item.popular || false,
+      available: item.available ?? true,
+      image: item.image || undefined,
+      discountPrice: item.discountPrice || undefined,
+      discountStartDate: item.discountStartDate || undefined,
+      discountEndDate: item.discountEndDate || undefined,
+      discountActive: item.discountActive || false,
+      variations: item.variations || [],
+      addOns: item.addOns || []
+    });
     setVariationGroups(groupVariationsIntoTypes(item.variations || []));
     setCurrentView('edit');
   };
@@ -98,61 +114,97 @@ const AdminDashboard: React.FC = () => {
   const handleSaveItem = async () => {
     console.log('=== STARTING SAVE PROCESS ===');
     console.log('Form data:', formData);
-    
+    console.log('Categories available:', categories);
+
     // Validate required fields
-    if (!formData.name || !formData.description || !formData.basePrice) {
-      const missingFields = [];
-      if (!formData.name) missingFields.push('name');
-      if (!formData.description) missingFields.push('description');
-      if (!formData.basePrice) missingFields.push('price');
-      
-      alert(`Please fill in required fields: ${missingFields.join(', ')}`);
+    if (!formData.name?.trim()) {
+      alert('Please enter a name for the item');
+      return;
+    }
+
+    if (!formData.description?.trim()) {
+      alert('Please enter a description for the item');
+      return;
+    }
+
+    if (!formData.basePrice || formData.basePrice <= 0) {
+      alert('Please enter a valid price greater than 0');
+      return;
+    }
+
+    if (!formData.category) {
+      alert('Please select a category');
       return;
     }
 
     setIsProcessing(true);
-    
+
     try {
       console.log('=== VALIDATING INPUT ===');
-      
+
       // Validate category exists
-      if (!categories.find(cat => cat.id === formData.category)) {
-        throw new Error(`Invalid category: ${formData.category}`);
+      const categoryExists = categories.find(cat => cat.id === formData.category);
+      if (!categoryExists) {
+        throw new Error(`Selected category "${formData.category}" does not exist. Please refresh the page and try again.`);
       }
-      
-      // Validate price is a positive number
-      if (typeof formData.basePrice !== 'number' || formData.basePrice <= 0) {
-        throw new Error('Price must be a positive number');
-      }
-      
+
       console.log('=== PREPARING DATA ===');
-      
+
       // Flatten variationGroups into the variations array
       const flatVariations: Variation[] = variationGroups.flatMap(group =>
-        group.options.map(opt => ({ ...opt, type: group.type }))
+        group.options.map(opt => ({
+          id: opt.id || `var-${Date.now()}-${Math.random()}`,
+          name: opt.name,
+          price: opt.price,
+          type: group.type
+        }))
       );
-      
+
+      // Validate variations have required fields
+      for (const variation of flatVariations) {
+        if (!variation.name?.trim()) {
+          throw new Error('All variations must have a name');
+        }
+        if (variation.price < 0) {
+          throw new Error('Variation prices cannot be negative');
+        }
+      }
+
+      // Validate add-ons have required fields
+      const addOns = formData.addOns || [];
+      for (const addOn of addOns) {
+        if (!addOn.name?.trim()) {
+          throw new Error('All add-ons must have a name');
+        }
+        if (!addOn.category?.trim()) {
+          throw new Error('All add-ons must have a category');
+        }
+        if (addOn.price < 0) {
+          throw new Error('Add-on prices cannot be negative');
+        }
+      }
+
       // Prepare the data object
       const dataToSave = {
         name: formData.name.trim(),
         description: formData.description.trim(),
-        basePrice: formData.basePrice,
+        basePrice: Number(formData.basePrice),
         category: formData.category,
-        popular: formData.popular || false,
-        available: formData.available ?? true,
-        image: formData.image || undefined, // This should already be a Supabase URL if uploaded
-        discountPrice: formData.discountPrice || undefined,
+        popular: Boolean(formData.popular),
+        available: Boolean(formData.available),
+        image: formData.image || undefined,
+        discountPrice: formData.discountPrice ? Number(formData.discountPrice) : undefined,
         discountStartDate: formData.discountStartDate || undefined,
         discountEndDate: formData.discountEndDate || undefined,
-        discountActive: formData.discountActive || false,
+        discountActive: Boolean(formData.discountActive),
         variations: flatVariations,
-        addOns: formData.addOns || []
+        addOns: addOns
       };
-      
+
       console.log('Data to save:', dataToSave);
-      
+
       console.log('=== SAVING TO DATABASE ===');
-      
+
       let result;
       if (editingItem) {
         console.log('Updating existing item:', editingItem.id);
@@ -165,9 +217,9 @@ const AdminDashboard: React.FC = () => {
         console.log('Add result:', result);
         alert('Item added successfully!');
       }
-      
+
       console.log('=== SAVE COMPLETED SUCCESSFULLY ===');
-      
+
       // Reset form and navigate back
       setCurrentView('items');
       setEditingItem(null);
@@ -182,30 +234,32 @@ const AdminDashboard: React.FC = () => {
         addOns: []
       });
       setVariationGroups([]);
-      
+
     } catch (error) {
       console.error('=== SAVE ERROR ===', error);
-      
+
       // Enhanced error handling with specific error types
-      let errorMessage = 'An unknown error occurred';
-      
+      let errorMessage = 'An unknown error occurred while saving';
+
       if (error instanceof Error) {
         errorMessage = error.message;
-        
+
         // Check for specific Supabase errors
         if (error.message.includes('duplicate key')) {
-          errorMessage = 'An item with this name already exists';
+          errorMessage = 'An item with this name already exists. Please choose a different name.';
         } else if (error.message.includes('permission denied')) {
-          errorMessage = 'Permission denied - check your database access';
+          errorMessage = 'Permission denied - please check your database access or contact support';
         } else if (error.message.includes('relation') && error.message.includes('does not exist')) {
-          errorMessage = 'Database table not found - check your Supabase setup';
+          errorMessage = 'Database tables not found - please run the database setup SQL first';
         } else if (error.message.includes('JWT')) {
-          errorMessage = 'Authentication error - check your Supabase credentials';
+          errorMessage = 'Authentication error - please check your Supabase credentials';
         } else if (error.message.includes('violates row-level security')) {
-          errorMessage = 'Database security policy violation - check RLS policies';
+          errorMessage = 'Database security policy violation - please check RLS policies';
+        } else if (error.message.includes('violates foreign key constraint')) {
+          errorMessage = 'Invalid category selected - please refresh the page and try again';
         }
       }
-      
+
       // Log the full error for debugging
       console.error('Full error details:', {
         name: error instanceof Error ? error.constructor?.name : typeof error,
@@ -214,8 +268,8 @@ const AdminDashboard: React.FC = () => {
         cause: error instanceof Error ? (error as any).cause : undefined,
         rawError: error
       });
-      
-      alert(`Failed to save item: ${errorMessage}\n\nCheck the console for detailed error information.`);
+
+      alert(`Failed to save item: ${errorMessage}\n\nCheck the browser console for detailed error information.`);
     } finally {
       setIsProcessing(false);
     }
@@ -412,14 +466,14 @@ const AdminDashboard: React.FC = () => {
   // Login Screen
   if (!isAuthenticated) {
   return (
-    <div className="min-h-screen bg-amber-50 flex items-center justify-center">
-      <div className="bg-white rounded-xl shadow-sm border border-amber-200 p-8 w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="mx-auto w-16 h-16 bg-amber-700 rounded-full flex items-center justify-center mb-4">
-            <Lock className="h-8 w-8 text-white" />
+    <div className="min-h-screen bg-theme flex items-center justify-center p-4">
+      <div className="bg-card-theme rounded-xl shadow-sm border border-blueprint-blue/20 p-6 sm:p-8 w-full max-w-sm sm:max-w-md">
+        <div className="text-center mb-6 sm:mb-8">
+          <div className="mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-blueprint-blue rounded-full flex items-center justify-center mb-4">
+            <Lock className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
           </div>
-          <h1 className="text-2xl font-semibold text-amber-900">Admin Access</h1>
-          <p className="text-amber-700 mt-2 text-sm">
+          <h1 className="text-xl sm:text-2xl font-blueprint-display font-semibold text-theme">Admin Access</h1>
+          <p className="text-theme opacity-70 mt-2 text-sm">
             Enter password to access dashboard
           </p>
         </div>
@@ -429,7 +483,7 @@ const AdminDashboard: React.FC = () => {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-3 border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-600 focus:border-transparent mb-4"
+            className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-blueprint-blue/30 rounded-lg focus:ring-2 focus:ring-blueprint-blue focus:border-transparent mb-4 text-sm sm:text-base"
             placeholder="Enter admin password"
             required
           />
@@ -440,7 +494,7 @@ const AdminDashboard: React.FC = () => {
 
           <button
             type="submit"
-            className="w-full bg-amber-700 text-white py-3 rounded-lg hover:bg-amber-800 transition"
+            className="w-full bg-blueprint-blue text-white py-2 sm:py-3 rounded-lg hover:bg-blueprint-blue-light transition text-sm sm:text-base"
           >
             Access Dashboard
           </button>
@@ -452,10 +506,10 @@ const AdminDashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-amber-50 flex items-center justify-center">
+      <div className="min-h-screen bg-theme flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blueprint-blue mx-auto mb-4"></div>
+          <p className="text-theme">Loading...</p>
         </div>
       </div>
     );
@@ -464,73 +518,76 @@ const AdminDashboard: React.FC = () => {
   // Form View (Add/Edit)
   if (currentView === 'add' || currentView === 'edit') {
     return (
-      <div className="min-h-screen bg-amber-50">
-        <div className="bg-white shadow-sm border-b">
+      <div className="min-h-screen bg-theme">
+        <div className="bg-card-theme shadow-sm border-b border-blueprint-blue/20">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 py-2 sm:py-0">
               <div className="flex items-center space-x-4">
                 <button
                   onClick={handleCancel}
-                  className="flex items-center space-x-2 text-gray-600 hover:text-black transition-colors duration-200"
+                  className="flex items-center space-x-2 text-theme hover:text-accent-theme transition-colors duration-200"
                 >
                   <ArrowLeft className="h-5 w-5" />
-                  <span>Back</span>
+                  <span className="text-sm sm:text-base">Back</span>
                 </button>
-                <h1 className="text-2xl font-playfair font-semibold text-black">
+                <h1 className="text-xl sm:text-2xl font-blueprint-display font-semibold text-theme">
                   {currentView === 'add' ? 'Add New Item' : 'Edit Item'}
                 </h1>
               </div>
-              <div className="flex space-x-3">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                 <button
                   onClick={handleCancel}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-amber-50 transition-colors duration-200 flex items-center space-x-2"
+                  className="px-3 sm:px-4 py-2 border border-blueprint-blue/30 rounded-lg hover:bg-blueprint-blue/5 transition-colors duration-200 flex items-center justify-center space-x-2"
                 >
                   <X className="h-4 w-4" />
-                  <span>Cancel</span>
+                  <span className="text-sm sm:text-base">Cancel</span>
                 </button>
                 <button
                   onClick={handleSaveItem}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 flex items-center space-x-2"
+                  disabled={isProcessing}
+                  className="px-3 sm:px-4 py-2 bg-blueprint-blue text-white rounded-lg hover:bg-blueprint-blue-light disabled:bg-blueprint-blue/50 transition-colors duration-200 flex items-center justify-center space-x-2"
                 >
                   <Save className="h-4 w-4" />
-                  <span>Save</span>
+                  <span className="text-sm sm:text-base">
+                    {isProcessing ? 'Saving...' : 'Save'}
+                  </span>
                 </button>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="max-w-4xl mx-auto px-4 py-8">
-          <div className="bg-white rounded-xl shadow-sm p-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+          <div className="bg-card-theme rounded-xl shadow-sm p-4 sm:p-6 lg:p-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
               <div>
-                <label className="block text-sm font-medium text-black mb-2">Item Name *</label>
+                <label className="block text-sm font-medium text-theme mb-2">Item Name *</label>
                 <input
                   type="text"
                   value={formData.name || ''}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-blueprint-blue/30 rounded-lg focus:ring-2 focus:ring-blueprint-blue focus:border-transparent text-sm sm:text-base"
                   placeholder="Enter item name"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-black mb-2">Base Price *</label>
+                <label className="block text-sm font-medium text-theme mb-2">Base Price *</label>
                 <input
                   type="number"
                   value={formData.basePrice || ''}
                   onChange={(e) => setFormData({ ...formData, basePrice: Number(e.target.value) })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-blueprint-blue/30 rounded-lg focus:ring-2 focus:ring-blueprint-blue focus:border-transparent text-sm sm:text-base"
                   placeholder="0"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-black mb-2">Category *</label>
+                <label className="block text-sm font-medium text-theme mb-2">Category *</label>
                 <select
                   value={formData.category || ''}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-blueprint-blue/30 rounded-lg focus:ring-2 focus:ring-blueprint-blue focus:border-transparent text-sm sm:text-base"
                 >
                   {categories.map(cat => (
                     <option key={cat.id} value={cat.id}>{cat.name}</option>
@@ -538,55 +595,55 @@ const AdminDashboard: React.FC = () => {
                 </select>
               </div>
 
-              <div className="flex items-center">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-0">
                 <label className="flex items-center space-x-2">
                   <input
                     type="checkbox"
                     checked={formData.popular || false}
                     onChange={(e) => setFormData({ ...formData, popular: e.target.checked })}
-                    className="rounded border-gray-300 text-amber-600 focus:ring-green-500"
+                    className="rounded border-blueprint-blue/30 text-blueprint-blue focus:ring-blueprint-blue w-4 h-4"
                   />
-                  <span className="text-sm font-medium text-black">Mark as Popular</span>
+                  <span className="text-sm font-medium text-theme">Mark as Popular</span>
                 </label>
               </div>
 
-              <div className="flex items-center">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-0">
                 <label className="flex items-center space-x-2">
                   <input
                     type="checkbox"
                     checked={formData.available ?? true}
                     onChange={(e) => setFormData({ ...formData, available: e.target.checked })}
-                    className="rounded border-gray-300 text-amber-600 focus:ring-green-500"
+                    className="rounded border-blueprint-blue/30 text-blueprint-blue focus:ring-blueprint-blue w-4 h-4"
                   />
-                  <span className="text-sm font-medium text-black">Available for Order</span>
+                  <span className="text-sm font-medium text-theme">Available for Order</span>
                 </label>
               </div>
             </div>
 
             {/* Discount Pricing Section */}
-            <div className="mb-8">
-              <h3 className="text-lg font-playfair font-medium text-black mb-4">Discount Pricing</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="mb-6 sm:mb-8">
+              <h3 className="text-lg font-blueprint-display font-medium text-theme mb-4">Discount Pricing</h3>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-black mb-2">Discount Price</label>
+                  <label className="block text-sm font-medium text-theme mb-2">Discount Price</label>
                   <input
                     type="number"
                     value={formData.discountPrice || ''}
                     onChange={(e) => setFormData({ ...formData, discountPrice: Number(e.target.value) || undefined })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-blueprint-blue/30 rounded-lg focus:ring-2 focus:ring-blueprint-blue focus:border-transparent text-sm sm:text-base"
                     placeholder="Enter discount price"
                   />
                 </div>
 
-                <div className="flex items-center">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-0">
                   <label className="flex items-center space-x-2">
                     <input
                       type="checkbox"
                       checked={formData.discountActive || false}
                       onChange={(e) => setFormData({ ...formData, discountActive: e.target.checked })}
-                      className="rounded border-gray-300 text-amber-600 focus:ring-green-500"
+                      className="rounded border-blueprint-blue/30 text-blueprint-blue focus:ring-blueprint-blue w-4 h-4"
                     />
-                    <span className="text-sm font-medium text-black">Enable Discount</span>
+                    <span className="text-sm font-medium text-theme">Enable Discount</span>
                   </label>
                 </div>
 
@@ -596,7 +653,7 @@ const AdminDashboard: React.FC = () => {
                     type="datetime-local"
                     value={formData.discountStartDate || ''}
                     onChange={(e) => setFormData({ ...formData, discountStartDate: e.target.value || undefined })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent text-sm sm:text-base"
                   />
                 </div>
 
@@ -606,27 +663,27 @@ const AdminDashboard: React.FC = () => {
                     type="datetime-local"
                     value={formData.discountEndDate || ''}
                     onChange={(e) => setFormData({ ...formData, discountEndDate: e.target.value || undefined })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent text-sm sm:text-base"
                   />
                 </div>
               </div>
-              <p className="text-sm text-gray-500 mt-2">
+              <p className="text-xs sm:text-sm text-gray-500 mt-2">
                 Leave dates empty for indefinite discount period. Discount will only be active if "Enable Discount" is checked and current time is within the date range.
               </p>
             </div>
 
-            <div className="mb-8">
+            <div className="mb-6 sm:mb-8">
               <label className="block text-sm font-medium text-black mb-2">Description *</label>
               <textarea
                 value={formData.description || ''}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm sm:text-base resize-vertical"
                 placeholder="Enter item description"
                 rows={3}
               />
             </div>
 
-            <div className="mb-8">
+            <div className="mb-6 sm:mb-8">
               <ImageUpload
                 currentImage={formData.image}
                 onImageChange={(imageUrl) => setFormData({ ...formData, image: imageUrl })}
@@ -634,18 +691,18 @@ const AdminDashboard: React.FC = () => {
             </div>
 
             {/* Variations Section */}
-            <div className="mb-8">
-              <div className="flex items-center justify-between mb-4">
+            <div className="mb-6 sm:mb-8">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
                 <div>
                   <h3 className="text-lg font-playfair font-medium text-black">Variation Types</h3>
-                  <p className="text-sm text-gray-500 mt-0.5">Group options by type (e.g., Size, Temperature, Sugar Level)</p>
+                  <p className="text-xs sm:text-sm text-gray-500 mt-0.5">Group options by type (e.g., Size, Temperature, Sugar Level)</p>
                 </div>
                 <button
                   onClick={addVariationType}
-                  className="flex items-center space-x-2 px-3 py-2 bg-cream-100 text-black rounded-lg hover:bg-cream-200 transition-colors duration-200"
+                  className="flex items-center space-x-2 px-3 py-2 bg-cream-100 text-black rounded-lg hover:bg-cream-200 transition-colors duration-200 self-start sm:self-auto"
                 >
                   <Plus className="h-4 w-4" />
-                  <span>Add Type</span>
+                  <span className="text-sm">Add Type</span>
                 </button>
               </div>
 
@@ -656,7 +713,7 @@ const AdminDashboard: React.FC = () => {
               {variationGroups.map((group) => (
                 <div key={group.id} className="mb-4 border border-amber-200 rounded-xl overflow-hidden">
                   {/* Type header */}
-                  <div className="flex items-center space-x-3 px-4 py-3 bg-amber-50 border-b border-gray-200">
+                  <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 px-3 sm:px-4 py-3 bg-amber-50 border-b border-gray-200">
                     <input
                       type="text"
                       value={group.type}
@@ -666,7 +723,7 @@ const AdminDashboard: React.FC = () => {
                     />
                     <button
                       onClick={() => removeVariationGroup(group.id)}
-                      className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
+                      className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200 self-end sm:self-auto"
                       title="Remove this type"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -674,12 +731,12 @@ const AdminDashboard: React.FC = () => {
                   </div>
 
                   {/* Options within this type */}
-                  <div className="p-4 space-y-2">
+                  <div className="p-3 sm:p-4 space-y-2">
                     {group.options.length === 0 && (
                       <p className="text-xs text-gray-400 italic">No options yet.</p>
                     )}
                     {group.options.map((opt, optIndex) => (
-                      <div key={opt.id} className="flex items-center space-x-3">
+                      <div key={opt.id} className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
                         <input
                           type="text"
                           value={opt.name}
@@ -687,7 +744,7 @@ const AdminDashboard: React.FC = () => {
                           className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
                           placeholder="Option name (e.g., Small, Hot, 50%)"
                         />
-                        <div className="relative w-28">
+                        <div className="relative w-full sm:w-28">
                           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₱</span>
                           <input
                             type="number"
@@ -699,7 +756,7 @@ const AdminDashboard: React.FC = () => {
                         </div>
                         <button
                           onClick={() => removeOptionFromGroup(group.id, optIndex)}
-                          className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors duration-200"
+                          className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors duration-200 self-end sm:self-auto"
                         >
                           <X className="h-4 w-4" />
                         </button>
@@ -718,31 +775,31 @@ const AdminDashboard: React.FC = () => {
             </div>
 
             {/* Add-ons Section */}
-            <div className="mb-8">
-              <div className="flex items-center justify-between mb-4">
+            <div className="mb-6 sm:mb-8">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
                 <h3 className="text-lg font-playfair font-medium text-black">Add-ons</h3>
                 <button
                   onClick={addAddOn}
-                  className="flex items-center space-x-2 px-3 py-2 bg-cream-100 text-black rounded-lg hover:bg-cream-200 transition-colors duration-200"
+                  className="flex items-center space-x-2 px-3 py-2 bg-cream-100 text-black rounded-lg hover:bg-cream-200 transition-colors duration-200 self-start sm:self-auto"
                 >
                   <Plus className="h-4 w-4" />
-                  <span>Add Add-on</span>
+                  <span className="text-sm">Add Add-on</span>
                 </button>
               </div>
 
               {formData.addOns?.map((addOn, index) => (
-                <div key={addOn.id} className="flex items-center space-x-3 mb-3 p-4 bg-amber-50 rounded-lg">
+                <div key={addOn.id} className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 mb-3 p-3 sm:p-4 bg-amber-50 rounded-lg">
                   <input
                     type="text"
                     value={addOn.name}
                     onChange={(e) => updateAddOn(index, 'name', e.target.value)}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
                     placeholder="Add-on name"
                   />
                   <select
                     value={addOn.category}
                     onChange={(e) => updateAddOn(index, 'category', e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    className="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
                   >
                     {addOnCategories.map(cat => (
                       <option key={cat.id} value={cat.id}>{cat.name}</option>
@@ -773,41 +830,36 @@ const AdminDashboard: React.FC = () => {
   // Items List View
   if (currentView === 'items') {
     return (
-      <div className="min-h-screen bg-amber-50">
-        <div className="bg-white shadow-sm border-b">
+      <div className="min-h-screen bg-theme">
+        <div className="bg-card-theme shadow-sm border-b border-blueprint-blue/20">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16">
-              <div className="flex items-center space-x-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 py-2 sm:py-0">
+              <div className="flex items-center space-x-3 sm:space-x-4">
                 <button
                   onClick={() => setCurrentView('dashboard')}
-                  className="flex items-center space-x-2 text-gray-600 hover:text-black transition-colors duration-200"
+                  className="flex items-center space-x-2 text-theme hover:text-accent-theme transition-colors duration-200"
                 >
                   <ArrowLeft className="h-5 w-5" />
-                  <span>Dashboard</span>
+                  <span className="text-sm sm:text-base">Dashboard</span>
                 </button>
-                <h1 className="text-2xl font-playfair font-semibold text-black">Menu Items</h1>
+                <h1 className="text-xl sm:text-2xl font-blueprint-display font-semibold text-theme">Menu Items</h1>
               </div>
               <div className="flex items-center space-x-3">
-                {showBulkActions && (
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm text-gray-600">
-                      {selectedItems.length} item(s) selected
-                    </span>
-                    <button
-                      onClick={() => setShowBulkActions(!showBulkActions)}
-                      className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200"
-                    >
-                      <span>Bulk Actions</span>
-                    </button>
-                  </div>
-                )}
+              <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
+                <button
+                  onClick={() => setShowBulkActions(!showBulkActions)}
+                  className="flex items-center space-x-2 bg-blueprint-blue text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-blueprint-blue-light transition-colors duration-200 text-sm"
+                >
+                  <span>Bulk Actions</span>
+                </button>
                 <button
                   onClick={handleAddItem}
-                  className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors duration-200"
+                  className="flex items-center space-x-2 bg-blueprint-blue text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-blueprint-blue-light transition-colors duration-200 text-sm"
                 >
                   <Plus className="h-4 w-4" />
                   <span>Add New Item</span>
                 </button>
+              </div>
               </div>
             </div>
           </div>
@@ -816,17 +868,17 @@ const AdminDashboard: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 py-8">
           {/* Bulk Actions Panel */}
           {showBulkActions && selectedItems.length > 0 && (
-            <div className="bg-white rounded-xl shadow-sm p-6 mb-6 border-l-4 border-blue-500">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="bg-card-theme rounded-xl shadow-sm p-4 sm:p-6 mb-4 sm:mb-6 border-l-4 border-blueprint-blue">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <div>
-                  <h3 className="text-lg font-medium text-black mb-1">Bulk Actions</h3>
-                  <p className="text-sm text-gray-600">{selectedItems.length} item(s) selected</p>
+                  <h3 className="text-lg font-medium text-theme mb-1">Bulk Actions</h3>
+                  <p className="text-xs sm:text-sm text-theme/70">{selectedItems.length} item(s) selected</p>
                 </div>
-                
+
                 <div className="flex flex-col sm:flex-row gap-3">
                   {/* Change Category */}
-                  <div className="flex items-center space-x-2">
-                    <label className="text-sm font-medium text-gray-700">Change Category:</label>
+                  <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
+                    <label className="text-xs sm:text-sm font-medium text-theme">Change Category:</label>
                     <select
                       onChange={(e) => {
                         if (e.target.value) {
@@ -834,7 +886,7 @@ const AdminDashboard: React.FC = () => {
                           e.target.value = ''; // Reset selection
                         }
                       }}
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                      className="px-3 py-2 border border-blueprint-blue/30 rounded-lg focus:ring-2 focus:ring-blueprint-blue focus:border-transparent text-sm"
                       disabled={isProcessing}
                     >
                       <option value="">Select Category</option>
@@ -843,59 +895,60 @@ const AdminDashboard: React.FC = () => {
                       ))}
                     </select>
                   </div>
-                  
-                  {/* Remove Items */}
-                  <button
-                    onClick={handleBulkRemove}
-                    disabled={isProcessing}
-                    className="flex items-center space-x-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    <span>{isProcessing ? 'Removing...' : 'Remove Selected'}</span>
-                  </button>
-                  
-                  {/* Clear Selection */}
-                  <button
-                    onClick={() => {
-                      setSelectedItems([]);
-                      setShowBulkActions(false);
-                    }}
-                    className="flex items-center space-x-2 bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors duration-200 text-sm"
-                  >
-                    <X className="h-4 w-4" />
-                    <span>Clear Selection</span>
-                  </button>
+
+                  {/* Action Buttons */}
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <button
+                      onClick={handleBulkRemove}
+                      disabled={isProcessing}
+                      className="flex items-center justify-center space-x-2 bg-red-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-red-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      <span>{isProcessing ? 'Removing...' : 'Remove Selected'}</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setSelectedItems([]);
+                        setShowBulkActions(false);
+                      }}
+                      className="flex items-center justify-center space-x-2 bg-gray-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors duration-200 text-sm"
+                    >
+                      <X className="h-4 w-4" />
+                      <span>Clear Selection</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           )}
 
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div className="bg-card-theme rounded-xl shadow-sm overflow-hidden">
             {/* Bulk Actions Bar */}
             {menuItems.length > 0 && (
-              <div className="bg-amber-50 border-b border-amber-200 px-6 py-3">
-                <div className="flex items-center justify-between">
+              <div className="bg-theme border-b border-blueprint-blue/20 px-4 sm:px-6 py-3">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div className="flex items-center space-x-4">
                     <label className="flex items-center space-x-2">
                       <input
                         type="checkbox"
                         checked={selectedItems.length === menuItems.length && menuItems.length > 0}
                         onChange={handleSelectAll}
-                        className="rounded border-gray-300 text-amber-600 focus:ring-green-500"
+                        className="rounded border-blueprint-blue/30 text-blueprint-blue focus:ring-blueprint-blue w-4 h-4"
                       />
-                      <span className="text-sm font-medium text-gray-700">
+                      <span className="text-sm font-medium text-theme">
                         Select All ({menuItems.length} items)
                       </span>
                     </label>
                   </div>
                   {selectedItems.length > 0 && (
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm text-gray-600">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                      <span className="text-xs sm:text-sm text-theme/70">
                         {selectedItems.length} item(s) selected
                       </span>
                       <button
                         onClick={() => setSelectedItems([])}
-                        className="text-sm text-gray-500 hover:text-gray-700 transition-colors duration-200"
+                        className="text-xs sm:text-sm text-theme/70 hover:text-theme transition-colors duration-200"
                       >
                         Clear Selection
                       </button>
@@ -908,56 +961,56 @@ const AdminDashboard: React.FC = () => {
             {/* Desktop Table View */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-amber-50">
+                <thead className="bg-theme">
                   <tr>
-                    <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">
+                    <th className="px-6 py-4 text-left text-sm font-medium text-theme">
                       Select
                     </th>
-                    <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">Name</th>
-                    <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">Category</th>
-                    <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">Price</th>
-                    <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">Variations</th>
-                    <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">Add-ons</th>
-                    <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">Status</th>
-                    <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">Actions</th>
+                    <th className="px-6 py-4 text-left text-sm font-medium text-theme">Name</th>
+                    <th className="px-6 py-4 text-left text-sm font-medium text-theme">Category</th>
+                    <th className="px-6 py-4 text-left text-sm font-medium text-theme">Price</th>
+                    <th className="px-6 py-4 text-left text-sm font-medium text-theme">Variations</th>
+                    <th className="px-6 py-4 text-left text-sm font-medium text-theme">Add-ons</th>
+                    <th className="px-6 py-4 text-left text-sm font-medium text-theme">Status</th>
+                    <th className="px-6 py-4 text-left text-sm font-medium text-theme">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y divide-blueprint-blue/20">
                   {menuItems.map((item) => (
-                    <tr key={item.id} className="hover:bg-amber-50">
+                    <tr key={item.id} className="hover:bg-theme">
                       <td className="px-6 py-4">
                         <input
                           type="checkbox"
                           checked={selectedItems.includes(item.id)}
                           onChange={() => handleSelectItem(item.id)}
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          className="rounded border-blueprint-blue/30 text-blueprint-blue focus:ring-blueprint-blue"
                         />
                       </td>
                       <td className="px-6 py-4">
                         <div>
-                          <div className="font-medium text-gray-900">{item.name}</div>
-                          <div className="text-sm text-gray-500 truncate max-w-xs">{item.description}</div>
+                          <div className="font-medium text-theme">{item.name}</div>
+                          <div className="text-sm text-theme/70 truncate max-w-xs">{item.description}</div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">
+                      <td className="px-6 py-4 text-sm text-theme/70">
                         {categories.find(cat => cat.id === item.category)?.name}
                       </td>
-                      <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                      <td className="px-6 py-4 text-sm font-medium text-theme">
                         <div className="flex flex-col">
                           {item.isOnDiscount && item.discountPrice ? (
                             <>
                               <span className="text-red-600 font-semibold">₱{item.discountPrice}</span>
-                              <span className="text-gray-500 line-through text-xs">₱{item.basePrice}</span>
+                              <span className="text-theme/50 line-through text-xs">₱{item.basePrice}</span>
                             </>
                           ) : (
                             <span>₱{item.basePrice}</span>
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">
+                      <td className="px-6 py-4 text-sm text-theme/70">
                         {item.variations?.length || 0} variations
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">
+                      <td className="px-6 py-4 text-sm text-theme/70">
                         {item.addOns?.length || 0} add-ons
                       </td>
                       <td className="px-6 py-4">
@@ -981,7 +1034,7 @@ const AdminDashboard: React.FC = () => {
                           <button
                             onClick={() => handleEditItem(item)}
                             disabled={isProcessing}
-                            className="p-2 text-gray-400 hover:text-gray-600 hover: bg-amber-100 rounded transition-colors duration-200"
+                            className="p-2 text-theme/60 hover:text-theme hover:bg-blueprint-blue/10 rounded transition-colors duration-200"
                           >
                             <Edit className="h-4 w-4" />
                           </button>
@@ -1133,138 +1186,147 @@ const AdminDashboard: React.FC = () => {
   }
 
   // Dashboard View
-  return (
-    <div className="min-h-screen bg-amber-50">
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-4">
-              <Coffee className="h-8 w-8 text-black" />
-              <h1 className="text-2xl font-noto font-semibold text-black">WebNegosyo Admin</h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <a
-                href="/"
-                className="text-gray-600 hover:text-black transition-colors duration-200"
-              >
-                View Website
-              </a>
-              <button
-                onClick={handleLogout}
-                className="text-gray-600 hover:text-black transition-colors duration-200"
-              >
-                Logout
-              </button>
-            </div>
+ // Dashboard View
+return (
+  <div className="min-h-screen bg-amber-50">
+    <div className="bg-white shadow-sm border-b">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 py-5">
+
+          {/* Logo + Title */}
+          <div className="flex items-center space-x-4">
+            <Coffee className="h-9 w-9 sm:h-10 sm:w-10 text-black" />
+            <h1 className="text-2xl sm:text-3xl font-noto font-semibold text-black tracking-tight">
+              Cafero Admin
+            </h1>
           </div>
+
+          {/* Right Side Links */}
+          <div className="flex items-center gap-5">
+            <a
+              href="/"
+              className="text-gray-600 hover:text-black transition-colors duration-200 text-base font-medium"
+            >
+              View Website
+            </a>
+
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-black transition-all duration-200 text-base font-medium"
+            >
+              Logout
+            </button>
+          </div>
+
         </div>
       </div>
+    </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-sm p-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+          <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
             <div className="flex items-center">
               <div className="p-2 bg-green-600 rounded-lg">
-                <Package className="h-6 w-6 text-white" />
+                <Package className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Items</p>
-                <p className="text-2xl font-semibold text-gray-900">{totalItems}</p>
+              <div className="ml-3 sm:ml-4">
+                <p className="text-xs sm:text-sm font-medium text-gray-600">Total Items</p>
+                <p className="text-xl sm:text-2xl font-semibold text-gray-900">{totalItems}</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-6">
+          <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
             <div className="flex items-center">
               <div className="p-2 bg-green-500 rounded-lg">
-                <TrendingUp className="h-6 w-6 text-white" />
+                <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Available Items</p>
-                <p className="text-2xl font-semibold text-gray-900">{availableItems}</p>
+              <div className="ml-3 sm:ml-4">
+                <p className="text-xs sm:text-sm font-medium text-gray-600">Available Items</p>
+                <p className="text-xl sm:text-2xl font-semibold text-gray-900">{availableItems}</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-6">
+          <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
             <div className="flex items-center">
-              <div className="p-2 bg-cream-500 rounded-lg">
-                <Coffee className="h-6 w-6 text-white" />
+              <div className="p-2 bg-amber-500 rounded-lg">
+                <Coffee className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Popular Items</p>
-                <p className="text-2xl font-semibold text-gray-900">{popularItems}</p>
+              <div className="ml-3 sm:ml-4">
+                <p className="text-xs sm:text-sm font-medium text-gray-600">Popular Items</p>
+                <p className="text-xl sm:text-2xl font-semibold text-gray-900">{popularItems}</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-6">
+          <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
             <div className="flex items-center">
               <div className="p-2 bg-green-500 rounded-lg">
-                <Users className="h-6 w-6 text-white" />
+                <Users className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Active</p>
-                <p className="text-2xl font-semibold text-gray-900">Online</p>
+              <div className="ml-3 sm:ml-4">
+                <p className="text-xs sm:text-sm font-medium text-gray-600">Active</p>
+                <p className="text-xl sm:text-2xl font-semibold text-gray-900">Online</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-sm p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
+          <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
             <h3 className="text-lg font-playfair font-medium text-black mb-4">Quick Actions</h3>
             <div className="space-y-3">
               <button
                 onClick={handleAddItem}
                 className="w-full flex items-center space-x-3 p-3 text-left hover:bg-amber-50 rounded-lg transition-colors duration-200"
               >
-                <Plus className="h-5 w-5 text-gray-400" />
-                <span className="font-medium text-gray-900">Add New Menu Item</span>
+                <Plus className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                <span className="font-medium text-gray-900 text-sm sm:text-base">Add New Menu Item</span>
               </button>
               <button
                 onClick={() => setCurrentView('items')}
                 className="w-full flex items-center space-x-3 p-3 text-left hover:bg-amber-50 rounded-lg transition-colors duration-200"
               >
-                <Package className="h-5 w-5 text-gray-400" />
-                <span className="font-medium text-gray-900">Manage Menu Items</span>
+                <Package className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                <span className="font-medium text-gray-900 text-sm sm:text-base">Manage Menu Items</span>
               </button>
               <button
                 onClick={() => setCurrentView('categories')}
                 className="w-full flex items-center space-x-3 p-3 text-left hover:bg-amber-50 rounded-lg transition-colors duration-200"
               >
-                <FolderOpen className="h-5 w-5 text-gray-400" />
-                <span className="font-medium text-gray-900">Manage Categories</span>
+                <FolderOpen className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                <span className="font-medium text-gray-900 text-sm sm:text-base">Manage Categories</span>
               </button>
               <button
                 onClick={() => setCurrentView('payments')}
                 className="w-full flex items-center space-x-3 p-3 text-left hover:bg-amber-50 rounded-lg transition-colors duration-200"
               >
-                <CreditCard className="h-5 w-5 text-gray-400" />
-                <span className="font-medium text-gray-900">Payment Methods</span>
+                <CreditCard className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                <span className="font-medium text-gray-900 text-sm sm:text-base">Payment Methods</span>
               </button>
               <button
                 onClick={() => setCurrentView('settings')}
                 className="w-full flex items-center space-x-3 p-3 text-left hover:bg-amber-50 rounded-lg transition-colors duration-200"
               >
-                <Settings className="h-5 w-5 text-gray-400" />
-                <span className="font-medium text-gray-900">Site Settings</span>
+                <Settings className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                <span className="font-medium text-gray-900 text-sm sm:text-base">Site Settings</span>
               </button>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-6">
+          <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
             <h3 className="text-lg font-playfair font-medium text-black mb-4">Categories Overview</h3>
             <div className="space-y-3">
               {categoryCounts.map((category) => (
                 <div key={category.id} className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-lg">{category.icon}</span>
-                    <span className="font-medium text-gray-900">{category.name}</span>
+                  <div className="flex items-center space-x-2 min-w-0 flex-1">
+                    <span className="text-lg flex-shrink-0">{category.icon}</span>
+                    <span className="font-medium text-gray-900 text-sm sm:text-base truncate">{category.name}</span>
                   </div>
-                  <span className="text-sm text-gray-500">{category.count} items</span>
+                  <span className="text-xs sm:text-sm text-gray-500 font-medium flex-shrink-0 ml-2">{category.count} items</span>
                 </div>
               ))}
             </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { SiteSettings, SiteSetting } from '../types';
+import { SiteSettings } from '../types';
 
 export const useSiteSettings = () => {
   const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
@@ -19,27 +19,55 @@ export const useSiteSettings = () => {
 
       if (error) throw error;
 
-      // Transform the data into a more usable format
-      const serviceChargeEnabledValue = data.find(s => s.id === 'service_charge_enabled')?.value || 'false';
-      const serviceChargePercentageValue = data.find(s => s.id === 'service_charge_percentage')?.value || '7.5';
-      const serviceChargeApplicableToValue = data.find(s => s.id === 'service_charge_applicable_to')?.value || '["dine-in", "delivery", "pickup"]';
-      
+      const getValue = (key: string) => {
+        const setting = data.find(s => s.id === key);
+        return setting?.value ?? null;
+      };
+
+      // SERVICE CHARGE ENABLED
+      const serviceChargeEnabled =
+        getValue('service_charge_enabled') === 'true';
+
+      // SERVICE CHARGE PERCENTAGE
+      const rawPercentage = getValue('service_charge_percentage');
+      const parsedPercentage = rawPercentage !== null
+        ? Number(rawPercentage)
+        : 0;
+
+      const serviceChargePercentage = Number.isFinite(parsedPercentage)
+        ? parsedPercentage
+        : 0;
+
+      // SERVICE FEE AMOUNT
+      const rawFeeAmount = getValue('service_fee_amount');
+      const parsedFeeAmount = rawFeeAmount !== null
+        ? Number(rawFeeAmount)
+        : 0;
+
+      const serviceFeeAmount = Number.isFinite(parsedFeeAmount)
+        ? parsedFeeAmount
+        : 0;
+
+      // SERVICE CHARGE APPLICABLE TO
       let serviceChargeApplicableTo: string[] = [];
+
       try {
-        serviceChargeApplicableTo = JSON.parse(serviceChargeApplicableToValue);
-      } catch (e) {
-        console.error('Error parsing service_charge_applicable_to:', e);
-        serviceChargeApplicableTo = ['dine-in', 'delivery', 'pickup'];
+        const raw = getValue('service_charge_applicable_to');
+        serviceChargeApplicableTo = raw ? JSON.parse(raw) : [];
+      } catch {
+        serviceChargeApplicableTo = [];
       }
 
       const settings: SiteSettings = {
-        site_name: data.find(s => s.id === 'site_name')?.value || 'CAFERO',
-        site_logo: data.find(s => s.id === 'site_logo')?.value || '',
-        site_description: data.find(s => s.id === 'site_description')?.value || '',
-        currency: data.find(s => s.id === 'currency')?.value || 'PHP',
-        currency_code: data.find(s => s.id === 'currency_code')?.value || 'PHP',
-        service_charge_enabled: serviceChargeEnabledValue === 'true',
-        service_charge_percentage: parseFloat(serviceChargePercentageValue) || 7.5,
+        site_name: getValue('site_name') || 'CAFERO',
+        site_logo: getValue('site_logo') || '',
+        site_description: getValue('site_description') || '',
+        currency: getValue('currency') || '₱',
+        currency_code: getValue('currency_code') || 'PHP',
+
+        service_charge_enabled: serviceChargeEnabled,
+        service_charge_percentage: serviceChargePercentage,
+        service_fee_amount: serviceFeeAmount,
         service_charge_applicable_to: serviceChargeApplicableTo
       };
 
@@ -63,7 +91,6 @@ export const useSiteSettings = () => {
 
       if (error) throw error;
 
-      // Refresh the settings
       await fetchSiteSettings();
     } catch (err) {
       console.error('Error updating site setting:', err);
@@ -77,18 +104,33 @@ export const useSiteSettings = () => {
       setError(null);
 
       const updatePromises = Object.entries(updates).map(([key, value]) => {
-        // Convert value to string for storage
+
         let stringValue: string;
+
         if (key === 'service_charge_enabled') {
           stringValue = value ? 'true' : 'false';
-        } else if (key === 'service_charge_percentage') {
-          stringValue = String(value || 0);
-        } else if (key === 'service_charge_applicable_to') {
-          stringValue = JSON.stringify(value || []);
-        } else {
-          stringValue = String(value || '');
         }
-        
+
+        else if (key === 'service_charge_percentage') {
+          const pct = Number(value);
+          const safe = Math.min(100, Math.max(0, pct));
+          stringValue = String(safe);
+        }
+
+        else if (key === 'service_fee_amount') {
+          const amount = Number(value);
+          const safe = Math.max(0, amount);
+          stringValue = String(safe);
+        }
+
+        else if (key === 'service_charge_applicable_to') {
+          stringValue = JSON.stringify(value || []);
+        }
+
+        else {
+          stringValue = String(value ?? '');
+        }
+
         return supabase
           .from('site_settings')
           .update({ value: stringValue })
@@ -96,15 +138,14 @@ export const useSiteSettings = () => {
       });
 
       const results = await Promise.all(updatePromises);
-      
-      // Check for errors
-      const errors = results.filter(result => result.error);
+
+      const errors = results.filter(r => r.error);
       if (errors.length > 0) {
         throw new Error('Some updates failed');
       }
 
-      // Refresh the settings
       await fetchSiteSettings();
+
     } catch (err) {
       console.error('Error updating site settings:', err);
       setError(err instanceof Error ? err.message : 'Failed to update site settings');

@@ -28,19 +28,21 @@ const Checkout: React.FC<CheckoutProps> = ({ cartItems, totalPrice: _totalPrice,
   // Calculate subtotal from cart items
   const subtotal = cartItems.reduce((sum, item) => sum + (item.totalPrice * item.quantity), 0);
 
-  // Check if service charge is enabled and applicable to current service type
-  const isServiceChargeEnabled = siteSettings?.service_charge_enabled ?? false;
-  const serviceChargePercentage = siteSettings?.service_charge_percentage ?? 7.5;
-  const applicableServiceTypes = siteSettings?.service_charge_applicable_to ?? [];
-  const isServiceChargeApplicable = isServiceChargeEnabled && applicableServiceTypes.includes(serviceType);
+  // Delivery fee directly from settings
+  const deliveryFeeAmount = (() => {
+    const raw = siteSettings?.service_fee_amount;
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : 60; // fallback just in case
+  })();
 
-  // Label differs by service type
-  const feeLabel = serviceType === 'dine-in' ? 'Service Charge' : 'Packaging Fee';
+  // ONLY apply service charge when delivery is selected
+  const isServiceChargeApplicable = serviceType === 'delivery';
 
-  // Calculate service charge and final total
-  const serviceCharge = isServiceChargeApplicable
-    ? subtotal * (serviceChargePercentage / 100)
-    : 0;
+  // Label for service type
+  const feeLabel = 'Delivery Fee';
+
+  // Calculate service charge (now a fixed delivery fee) and final total
+  const serviceCharge = isServiceChargeApplicable ? deliveryFeeAmount : 0;
   const finalTotal = subtotal + serviceCharge;
 
   React.useEffect(() => {
@@ -61,61 +63,56 @@ const Checkout: React.FC<CheckoutProps> = ({ cartItems, totalPrice: _totalPrice,
   };
 
   const handlePlaceOrder = () => {
-    const timeInfo = serviceType === 'pickup' 
+    const timeInfo = serviceType === 'pickup'
       ? (pickupTime === 'custom' ? customTime : `${pickupTime} minutes`)
       : '';
-    
+
     const orderDetails = `
-🛒 Blueprint Cafe ORDER
+CAFERO ORDER
 
 👤 Customer: ${customerName}
 📞 Contact: ${contactNumber}
 📍 Service: ${serviceType.charAt(0).toUpperCase() + serviceType.slice(1)}
-${serviceType === 'delivery' ? `📍 Self Booking - Pin: Blueprint Cafe
-9730 kamagong st, Makati City
-Contact Person: Blueprint Cafe
-Number: 0917 190 4334` : ''}
 ${serviceType === 'pickup' ? `⏰ Pickup Time: ${timeInfo}` : ''}
 
 
 📋 ORDER DETAILS:
 ${cartItems.map(item => {
-  let itemDetails = `• ${item.name}`;
-  const allVariations = item.selectedVariations && item.selectedVariations.length > 0
-    ? item.selectedVariations
-    : item.selectedVariation ? [item.selectedVariation] : [];
-  if (allVariations.length > 0) {
-    itemDetails += ` (${allVariations.map(v => v.name).join(', ')})`;
-  }
-  if (item.selectedAddOns && item.selectedAddOns.length > 0) {
-    itemDetails += ` + ${item.selectedAddOns.map(addOn => 
-      addOn.quantity && addOn.quantity > 1 
-        ? `${addOn.name} x${addOn.quantity}`
-        : addOn.name
-    ).join(', ')}`;
-  }
-  itemDetails += ` x${item.quantity} - ₱${item.totalPrice * item.quantity}`;
-  return itemDetails;
-}).join('\n')}
+      let itemDetails = `• ${item.name}`;
+      const allVariations = item.selectedVariations && item.selectedVariations.length > 0
+        ? item.selectedVariations
+        : item.selectedVariation ? [item.selectedVariation] : [];
+      if (allVariations.length > 0) {
+        itemDetails += ` (${allVariations.map(v => v.name).join(', ')})`;
+      }
+      if (item.selectedAddOns && item.selectedAddOns.length > 0) {
+        itemDetails += ` + ${item.selectedAddOns.map(addOn =>
+          addOn.quantity && addOn.quantity > 1
+            ? `${addOn.name} x${addOn.quantity}`
+            : addOn.name
+        ).join(', ')}`;
+      }
+      itemDetails += ` x${item.quantity} - ₱${item.totalPrice * item.quantity}`;
+      return itemDetails;
+    }).join('\n')}
 
 💰 SUBTOTAL: ₱${subtotal.toFixed(2)}
-${isServiceChargeApplicable ? `💼 ${feeLabel} (${serviceChargePercentage}%): ₱${serviceCharge.toFixed(2)}` : ''}
+${isServiceChargeApplicable ? `💼 ${feeLabel}: ₱${serviceCharge.toFixed(2)}` : ''}
 💰 TOTAL: ₱${finalTotal.toFixed(2)}
-${serviceType === 'delivery' ? `🛵 DELIVERY FEE:` : ''}
 
 💳 Payment: ${selectedPaymentMethod?.name || paymentMethod}
 📸 Payment Screenshot: Please attach your payment receipt screenshot
 
 ${notes ? `📝 Notes: ${notes}` : ''}
 
-Please confirm this order to proceed. Thank you for choosing BlueprintCafe! 🥟
+Please confirm this order to proceed. Thank you for choosing CAFERO! 🥟
     `.trim();
 
     const encodedMessage = encodeURIComponent(orderDetails);
     const messengerUrl = `https://m.me/Cafero.ph?text=${encodedMessage}`;
-    
+
     window.open(messengerUrl, '_blank');
-    
+
   };
 
   const isDetailsValid =
@@ -142,35 +139,35 @@ Please confirm this order to proceed. Thank you for choosing BlueprintCafe! 🥟
           {/* Order Summary */}
           <div className="bg-blueprint-cream rounded-xl shadow-sm p-6 cafero-card">
             <h2 className="text-2xl font-blueprint-display font-medium text-blueprint-dark mb-6">Order Summary</h2>
-            
+
             <div className="space-y-4 mb-6">
               {cartItems.map((item) => (
-                <div key={item.id} className="flex items-center justify-between py-2 border-b border-blue-100">
+                <div key={item.id} className="flex items-center justify-between py-2 border-b border-blueprint-100">
                   <div>
-                    <h4 className="font-medium text-black">{item.name}</h4>
+                    <h4 className="font-medium text-blueprint-dark">{item.name}</h4>
                     {item.selectedVariation && (
-                      <p className="text-sm text-gray-600">Size: {item.selectedVariation.name}</p>
+                      <p className="text-sm text-blueprint-gray-soft">Size: {item.selectedVariation.name}</p>
                     )}
                     {item.selectedAddOns && item.selectedAddOns.length > 0 && (
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-blueprint-gray-soft">
                         Add-ons: {item.selectedAddOns.map(addOn => addOn.name).join(', ')}
                       </p>
                     )}
-                    <p className="text-sm text-gray-600">₱{item.totalPrice} x {item.quantity}</p>
+                    <p className="text-sm text-blueprint-gray-soft">₱{item.totalPrice} x {item.quantity}</p>
                   </div>
                   <span className="font-semibold text-blueprint-dark">₱{item.totalPrice * item.quantity}</span>
                 </div>
               ))}
             </div>
-            
+
             <div className="border-t border-blueprint-blue/20 pt-4 space-y-2">
               <div className="flex items-center justify-between text-lg text-blueprint-dark">
                 <span>Subtotal:</span>
                 <span>₱{subtotal.toFixed(2)}</span>
               </div>
               {isServiceChargeApplicable && (
-                <div className="flex items-center justify-between text-lg text-gray-700">
-                  <span>{feeLabel} ({serviceChargePercentage}%):</span>
+                <div className="flex items-center justify-between text-lg text-blueprint-gray-soft">
+                  <span>{feeLabel}:</span>
                   <span>₱{serviceCharge.toFixed(2)}</span>
                 </div>
               )}
@@ -184,36 +181,52 @@ Please confirm this order to proceed. Thank you for choosing BlueprintCafe! 🥟
           {/* Customer Details Form */}
           <div className="bg-blueprint-cream rounded-xl shadow-sm p-6 cafero-card">
             <h2 className="text-2xl font-blueprint-display font-medium text-blueprint-dark mb-6">Customer Information</h2>
-            
+
             <form className="space-y-6">
               {/* Customer Information */}
               <div>
-                <label className="block text-sm font-medium text-black mb-2">Full Name *</label>
+                <label className="block text-sm font-medium text-blueprint-dark mb-2">Full Name *</label>
                 <input
                   type="text"
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
-                  className="w-full px-4 py-3 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  className="w-full px-4 py-3 border border-blueprint-100 rounded-lg focus:ring-2 focus:ring-blueprint-blue focus:border-blueprint-blue transition-all duration-200 text-blueprint-dark placeholder-blueprint-gray-soft"
                   placeholder="Enter your full name"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-black mb-2">Contact Number *</label>
+                <label className="block text-sm font-medium text-blueprint-dark mb-2">Contact Number *</label>
                 <input
                   type="tel"
                   value={contactNumber}
-                  onChange={(e) => setContactNumber(e.target.value)}
-                  className="w-full px-4 py-3 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                  placeholder="09XX XXX XXXX"
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[^0-9+]/g, '');
+                    if (value === '' || value.startsWith('+63')) {
+                      setContactNumber(value);
+                    } else if (value.startsWith('63')) {
+                      setContactNumber('+' + value);
+                    } else if (!value.startsWith('+')) {
+                      setContactNumber('+63' + value);
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (!/[0-9+Backspace]/.test(e.key) && e.key !== 'Delete') {
+                      e.preventDefault();
+                    }
+                  }}
+                  maxLength={13}
+                  inputMode="numeric"
+                  className="w-full px-4 py-3 border border-blueprint-100 rounded-lg focus:ring-2 focus:ring-blueprint-blue focus:border-blueprint-blue transition-all duration-200 text-blueprint-dark placeholder-blueprint-gray-soft"
+                  placeholder="+63 9XX XXX XXXX"
                   required
                 />
               </div>
 
               {/* Service Type */}
               <div>
-                <label className="block text-sm font-medium text-black mb-3">Service Type *</label>
+                <label className="block text-sm font-medium text-blueprint-dark mb-3">Service Type *</label>
                 <div className="grid grid-cols-3 gap-3">
                   {[
                     { value: 'dine-in', label: 'Dine In', icon: '🪑' },
@@ -224,11 +237,10 @@ Please confirm this order to proceed. Thank you for choosing BlueprintCafe! 🥟
                       key={option.value}
                       type="button"
                       onClick={() => setServiceType(option.value as ServiceType)}
-                      className={`p-4 rounded-lg border-2 transition-all duration-200 ${
-                        serviceType === option.value
-                          ? 'border-blue-600 bg-amber-800 text-white'
-                          : 'border-blue-300 bg-white text-gray-700 hover:border-blue-400'
-                      }`}
+                      className={`p-4 rounded-lg border-2 transition-all duration-200 ${serviceType === option.value
+                        ? 'border-blueprint-blue bg-blueprint-blue text-white'
+                        : 'border-blueprint-100 bg-white text-blueprint-dark hover:border-blueprint-blue/50'
+                        }`}
                     >
                       <div className="text-2xl mb-1">{option.icon}</div>
                       <div className="text-sm font-medium">{option.label}</div>
@@ -241,7 +253,7 @@ Please confirm this order to proceed. Thank you for choosing BlueprintCafe! 🥟
               {/* Pickup Time Selection */}
               {serviceType === 'pickup' && (
                 <div>
-                  <label className="block text-sm font-medium text-black mb-3">Pickup Time *</label>
+                  <label className="block text-sm font-medium text-blueprint-dark mb-3">Pickup Time *</label>
                   <div className="space-y-3">
                     <div className="grid grid-cols-2 gap-3">
                       {[
@@ -254,24 +266,23 @@ Please confirm this order to proceed. Thank you for choosing BlueprintCafe! 🥟
                           key={option.value}
                           type="button"
                           onClick={() => setPickupTime(option.value)}
-                          className={`p-3 rounded-lg border-2 transition-all duration-200 text-sm ${
-                            pickupTime === option.value
-                              ? 'border-blue-600 bg-amber-800 text-white'
-                              : 'border-blue-300 bg-white text-gray-700 hover:border-blue-400'
-                          }`}
+                          className={`p-3 rounded-lg border-2 transition-all duration-200 text-sm ${pickupTime === option.value
+                            ? 'border-blueprint-blue bg-blueprint-blue text-white'
+                            : 'border-blueprint-100 bg-white text-blueprint-dark hover:border-blueprint-blue/50'
+                            }`}
                         >
                           <Clock className="h-4 w-4 mx-auto mb-1" />
                           {option.label}
                         </button>
                       ))}
                     </div>
-                    
+
                     {pickupTime === 'custom' && (
                       <input
                         type="text"
                         value={customTime}
                         onChange={(e) => setCustomTime(e.target.value)}
-                        className="w-full px-4 py-3 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                        className="w-full px-4 py-3 border border-blueprint-100 rounded-lg focus:ring-2 focus:ring-blueprint-blue focus:border-blueprint-blue transition-all duration-200 text-blueprint-dark placeholder-blueprint-gray-soft"
                         placeholder="e.g., 45 minutes, 1 hour, 2:30 PM"
                         required
                       />
@@ -283,7 +294,7 @@ Please confirm this order to proceed. Thank you for choosing BlueprintCafe! 🥟
               {/* Delivery Location Input */}
               {serviceType === 'delivery' && (
                 <div className="space-y-4">
-                  <label className="block text-sm font-medium text-black mb-2">
+                  <label className="block text-sm font-medium text-blueprint-dark mb-2">
                     📍 Delivery Address *
                   </label>
                   <textarea
@@ -295,7 +306,7 @@ Please confirm this order to proceed. Thank you for choosing BlueprintCafe! 🥟
                     }
                     required
                     rows={3}
-                    className="w-full px-4 py-3 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-none"
+                    className="w-full px-4 py-3 border border-blueprint-100 rounded-lg focus:ring-2 focus:ring-blueprint-blue focus:border-blueprint-blue transition-all duration-200 resize-none text-blueprint-dark placeholder-blueprint-gray-soft"
                   />
 
                   <input
@@ -306,18 +317,18 @@ Please confirm this order to proceed. Thank you for choosing BlueprintCafe! 🥟
                     onChange={(e) =>
                       setDeliveryInfo({ ...deliveryInfo, landmark: e.target.value })
                     }
-                    className="w-full px-4 py-3 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                    className="w-full px-4 py-3 border border-blueprint-100 rounded-lg focus:ring-2 focus:ring-blueprint-blue focus:border-blueprint-blue transition-all duration-200 text-blueprint-dark placeholder-blueprint-gray-soft"
                   />
                 </div>
               )}
 
               {/* Special Notes */}
               <div>
-                <label className="block text-sm font-medium text-black mb-2">Special Instructions</label>
+                <label className="block text-sm font-medium text-blueprint-dark mb-2">Special Instructions</label>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  className="w-full px-4 py-3 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  className="w-full px-4 py-3 border border-blueprint-100 rounded-lg focus:ring-2 focus:ring-blueprint-blue focus:border-blueprint-blue transition-all duration-200 text-blueprint-dark placeholder-blueprint-gray-soft"
                   placeholder="Any special requests or notes..."
                   rows={3}
                 />
@@ -326,11 +337,10 @@ Please confirm this order to proceed. Thank you for choosing BlueprintCafe! 🥟
               <button
                 onClick={handleProceedToPayment}
                 disabled={!isDetailsValid}
-                className={`w-full py-4 rounded-xl font-medium text-lg transition-all duration-200 transform ${
-                  isDetailsValid
-                    ? 'bg-amber-800 text-white hover:bg-blue-700 hover:scale-[1.02]'
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                }`}
+                className={`w-full py-4 rounded-xl font-medium text-lg transition-all duration-200 transform ${isDetailsValid
+                  ? 'bg-blueprint-blue text-white hover:bg-blueprint-blue-light hover:scale-[1.02]'
+                  : 'bg-blueprint-100 text-blueprint-gray-soft cursor-not-allowed'
+                  }`}
               >
                 Proceed to Payment
               </button>
@@ -359,18 +369,17 @@ Please confirm this order to proceed. Thank you for choosing BlueprintCafe! 🥟
         {/* Payment Method Selection */}
         <div className="bg-blueprint-cream rounded-xl shadow-sm p-6 cafero-card">
           <h2 className="text-2xl font-blueprint-display font-medium text-blueprint-dark mb-6">Choose Payment Method</h2>
-          
+
           <div className="grid grid-cols-1 gap-4 mb-6">
             {paymentMethods.map((method) => (
               <button
                 key={method.id}
                 type="button"
                 onClick={() => setPaymentMethod(method.id as PaymentMethod)}
-                className={`p-4 rounded-lg border-2 transition-all duration-200 flex items-center space-x-3 ${
-                  paymentMethod === method.id
-                    ? 'border-blueprint-blue bg-blueprint-blue text-white'
-                    : 'border-blueprint-blue/30 bg-white text-blueprint-dark hover:border-blueprint-blue/50'
-                }`}
+                className={`p-4 rounded-lg border-2 transition-all duration-200 flex items-center space-x-3 ${paymentMethod === method.id
+                  ? 'border-blueprint-blue bg-blueprint-blue text-white'
+                  : 'border-blueprint-blue/30 bg-white text-blueprint-dark hover:border-blueprint-blue/50'
+                  }`}
               >
                 <span className="text-2xl">💳</span>
                 <span className="font-medium">{method.name}</span>
@@ -390,68 +399,68 @@ Please confirm this order to proceed. Thank you for choosing BlueprintCafe! 🥟
                   <p className="text-xl font-semibold text-blueprint-dark">Amount: ₱{finalTotal.toFixed(2)}</p>
                 </div>
                 <div className="flex-shrink-0">
-                  <img 
-                    src={selectedPaymentMethod.qr_code_url} 
+                  <img
+                    src={selectedPaymentMethod.qr_code_url}
                     alt={`${selectedPaymentMethod.name} QR Code`}
                     className="w-32 h-32 rounded-lg border-2 border-blue-300 shadow-sm"
                     onError={(e) => {
                       e.currentTarget.src = 'https://images.pexels.com/photos/8867482/pexels-photo-8867482.jpeg?auto=compress&cs=tinysrgb&w=300&h=300&fit=crop';
                     }}
                   />
-                  <p className="text-xs text-gray-500 text-center mt-2">Scan to pay</p>
+                  <p className="text-xs text-blueprint-gray-soft text-center mt-2">Scan to pay</p>
                 </div>
               </div>
             </div>
           )}
 
           {/* Reference Number */}
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <h4 className="font-medium text-black mb-2">📸 Payment Proof Required</h4>
-            <p className="text-sm text-gray-700">
+          <div className="bg-blueprint-blue-50 border border-blueprint-100 rounded-lg p-4">
+            <h4 className="font-medium text-blueprint-dark mb-2">📸 Payment Proof Required</h4>
+            <p className="text-sm text-blueprint-gray-soft">
               After making your payment, please take a screenshot of your payment receipt and attach it when you send your order via Messenger. This helps us verify and process your order quickly.
             </p>
           </div>
         </div>
 
         {/* Order Summary */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <h2 className="text-2xl font-noto font-medium text-black mb-6">Final Order Summary</h2>
-          
+        <div className="bg-blueprint-cream rounded-xl shadow-sm p-6 cafero-card">
+          <h2 className="text-2xl font-blueprint-display font-medium text-blueprint-dark mb-6">Final Order Summary</h2>
+
           <div className="space-y-4 mb-6">
-            <div className="bg-blue-50 rounded-lg p-4">
-              <h4 className="font-medium text-black mb-2">Customer Details</h4>
-              <p className="text-sm text-gray-600">Name: {customerName}</p>
-              <p className="text-sm text-gray-600">Contact: {contactNumber}</p>
-              <p className="text-sm text-gray-600">Service: {serviceType.charAt(0).toUpperCase() + serviceType.slice(1)}</p>
+            <div className="bg-blueprint-blue-50 rounded-lg p-4">
+              <h4 className="font-medium text-blueprint-dark mb-2">Customer Details</h4>
+              <p className="text-sm text-blueprint-gray-soft">Name: {customerName}</p>
+              <p className="text-sm text-blueprint-gray-soft">Contact: {contactNumber}</p>
+              <p className="text-sm text-blueprint-gray-soft">Service: {serviceType.charAt(0).toUpperCase() + serviceType.slice(1)}</p>
               {serviceType === 'delivery' && (
-               <div className="space-y-4">
-                <label className="block text-sm font-blueprint text-blueprint-dark mb-2">
-                  📍 Delivery Location
-                </label>
+                <div className="space-y-4">
+                  <label className="block text-sm font-blueprint text-blueprint-dark mb-2">
+                    📍 Delivery Location
+                  </label>
 
-                <textarea
-                  name="location"
-                  placeholder="House No., Street, Barangay, City"
-                  value={deliveryInfo.location}
-                  onChange={(e) =>
-                    setDeliveryInfo({ ...deliveryInfo, location: e.target.value })
-                  }
-                  required
-                  rows={3}
-                  className="w-full px-4 py-3 border border-blueprint-blue/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-blueprint-blue resize-none"
-                />
+                  <textarea
+                    name="location"
+                    placeholder="House No., Street, Barangay, City"
+                    value={deliveryInfo.location}
+                    onChange={(e) =>
+                      setDeliveryInfo({ ...deliveryInfo, location: e.target.value })
+                    }
+                    required
+                    rows={3}
+                    className="w-full px-4 py-3 border border-blueprint-blue/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-blueprint-blue resize-none"
+                  />
 
-                <input
-                  type="text"
-                  name="landmark"
-                  placeholder="Landmark (Optional)"
-                  value={deliveryInfo.landmark}
-                  onChange={(e) =>
-                    setDeliveryInfo({ ...deliveryInfo, landmark: e.target.value })
-                  }
-                  className="w-full px-4 py-3 border border-blueprint-blue/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-blueprint-blue"
-                />
-              </div>
+                  <input
+                    type="text"
+                    name="landmark"
+                    placeholder="Landmark (Optional)"
+                    value={deliveryInfo.landmark}
+                    onChange={(e) =>
+                      setDeliveryInfo({ ...deliveryInfo, landmark: e.target.value })
+                    }
+                    className="w-full px-4 py-3 border border-blueprint-blue/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-blueprint-blue"
+                  />
+                </div>
               )}
               {serviceType === 'pickup' && (
                 <p className="text-sm text-gray-600">
@@ -461,40 +470,40 @@ Please confirm this order to proceed. Thank you for choosing BlueprintCafe! 🥟
             </div>
 
             {cartItems.map((item) => (
-              <div key={item.id} className="flex items-center justify-between py-2 border-b border-blue-100">
+              <div key={item.id} className="flex items-center justify-between py-2 border-b border-blueprint-100">
                 <div>
-                  <h4 className="font-medium text-black">{item.name}</h4>
+                  <h4 className="font-medium text-blueprint-dark">{item.name}</h4>
                   {item.selectedVariation && (
-                    <p className="text-sm text-gray-600">Size: {item.selectedVariation.name}</p>
+                    <p className="text-sm text-blueprint-gray-soft">Size: {item.selectedVariation.name}</p>
                   )}
                   {item.selectedAddOns && item.selectedAddOns.length > 0 && (
-                    <p className="text-sm text-gray-600">
-                      Add-ons: {item.selectedAddOns.map(addOn => 
-                        addOn.quantity && addOn.quantity > 1 
+                    <p className="text-sm text-blueprint-gray-soft">
+                      Add-ons: {item.selectedAddOns.map(addOn =>
+                        addOn.quantity && addOn.quantity > 1
                           ? `${addOn.name} x${addOn.quantity}`
                           : addOn.name
                       ).join(', ')}
                     </p>
                   )}
-                  <p className="text-sm text-gray-600">₱{item.totalPrice} x {item.quantity}</p>
+                  <p className="text-sm text-blueprint-gray-soft">₱{item.totalPrice} x {item.quantity}</p>
                 </div>
-                <span className="font-semibold text-black">₱{item.totalPrice * item.quantity}</span>
+                <span className="font-semibold text-blueprint-dark">₱{item.totalPrice * item.quantity}</span>
               </div>
             ))}
           </div>
-          
-          <div className="border-t border-blue-200 pt-4 mb-6 space-y-2">
-            <div className="flex items-center justify-between text-lg text-gray-700">
+
+          <div className="border-t border-blueprint-100 pt-4 mb-6 space-y-2">
+            <div className="flex items-center justify-between text-lg text-blueprint-dark">
               <span>Subtotal:</span>
               <span>₱{subtotal.toFixed(2)}</span>
             </div>
             {isServiceChargeApplicable && (
-              <div className="flex items-center justify-between text-lg text-gray-700">
-                <span>{feeLabel} ({serviceChargePercentage}%):</span>
+              <div className="flex items-center justify-between text-lg text-blueprint-gray-soft">
+                <span>{feeLabel}:</span>
                 <span>₱{serviceCharge.toFixed(2)}</span>
               </div>
             )}
-            <div className="flex items-center justify-between text-2xl font-blueprint-display font-semibold text-blueprint-dark pt-2 border-t border-blueprint-blue/20">
+            <div className="flex items-center justify-between text-2xl font-blueprint-display font-semibold text-blueprint-dark pt-2 border-t border-blueprint-100">
               <span>Total:</span>
               <span>₱{finalTotal.toFixed(2)}</span>
             </div>
@@ -502,13 +511,13 @@ Please confirm this order to proceed. Thank you for choosing BlueprintCafe! 🥟
 
           <button
             onClick={handlePlaceOrder}
-            className="w-full py-4 rounded-xl font-medium text-lg transition-all duration-200 transform bg-amber-800 text-white hover:bg-blue-700 hover:scale-[1.02]"
+            className="w-full py-4 rounded-xl font-medium text-lg transition-all duration-200 transform bg-blueprint-blue text-white hover:bg-blueprint-blue-light hover:scale-[1.02]"
           >
             Place Order via Messenger
           </button>
-          
-          <p className="text-xs text-gray-500 text-center mt-3">
-            You'll be redirected to Facebook Messenger to confirm your order. Don't forget to attach your payment screenshot!
+
+          <p className="text-xs text-blueprint-gray-soft text-center mt-3">
+            You'll be redirected to Facebook Messenger to confirm your order. Please don't forget to attach your payment screenshot!
           </p>
         </div>
       </div>

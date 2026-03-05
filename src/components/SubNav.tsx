@@ -11,23 +11,22 @@ const SubNav: React.FC<SubNavProps> = ({ selectedCategory, onCategoryClick }) =>
 
   return (
     <div className="sticky top-20 z-40 bg-blueprint-off-white/95 backdrop-blur-md border-b border-blueprint-blue/20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center space-x-6 overflow-x-auto py-4 scrollbar-hide">
+      <div className="w-full px-6 sm:px-12 lg:px-16 xl:px-24">
+        <div className="flex items-center justify-start gap-4 overflow-x-auto py-6 scrollbar-hide w-full">
           {loading ? (
             <div className="flex space-x-6">
-              {[1,2,3,4,5].map(i => (
-                <div key={i} className="h-10 w-24 bg-blueprint-blue/10 rounded-lg animate-pulse" />
+              {[1, 2, 3, 4, 5].map(i => (
+                <div key={i} className="h-10 w-24 bg-[#5C4033]/10 rounded-lg animate-pulse" />
               ))}
             </div>
           ) : (
             <>
               <button
                 onClick={() => onCategoryClick('all')}
-                className={`px-6 py-2 rounded-lg text-sm font-blueprint-bold transition-all duration-200 ${
-                  selectedCategory === 'all'
-                    ? 'bg-blueprint-blue text-white shadow-md'
-                    : 'bg-blueprint-blue/5 text-blueprint-blue hover:bg-blueprint-blue/10 border border-blueprint-blue/20'
-                }`}
+                className={`flex-shrink-0 px-8 py-3 rounded-2xl text-base font-bold transition-all duration-200 shadow-sm ${selectedCategory === 'all'
+                  ? 'bg-[#8B4513] text-white shadow-md border-transparent border'
+                  : 'bg-white text-[#8B4513] hover:bg-[#8B4513]/5 border border-[#EBEBEB]'
+                  }`}
               >
                 All Items
               </button>
@@ -35,11 +34,10 @@ const SubNav: React.FC<SubNavProps> = ({ selectedCategory, onCategoryClick }) =>
                 <button
                   key={c.id}
                   onClick={() => onCategoryClick(c.id)}
-                  className={`px-6 py-2 rounded-lg text-sm font-blueprint-bold transition-all duration-200 flex items-center space-x-2 ${
-                    selectedCategory === c.id
-                      ? 'bg-blueprint-blue text-white shadow-md'
-                      : 'bg-blueprint-blue/5 text-blueprint-blue hover:bg-blueprint-blue/10 border border-blueprint-blue/20'
-                  }`}
+                  className={`flex-shrink-0 px-8 py-3 rounded-2xl text-base font-bold transition-all duration-200 flex items-center space-x-2 shadow-sm ${selectedCategory === c.id
+                    ? 'bg-[#8B4513] text-white shadow-md border-transparent border'
+                    : 'bg-white text-[#8B4513] hover:bg-[#8B4513]/5 border border-[#EBEBEB]'
+                    }`}
                 >
                   <span className="text-lg">{c.icon}</span>
                   <span>{c.name}</span>

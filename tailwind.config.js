@@ -5,9 +5,9 @@ export default {
     extend: {
       colors: {
         blueprint: {
-          blue: '#8B4513', // Rich brown for main accents (replaces blue)
-          'blue-light': '#A0522D', // Lighter brown for hover states
-          'blue-dark': '#654321', // Darker brown for text
+          blue: 'var(--accent-color)', // Rich brown for main accents (driven by CSS variable)
+          'blue-light': '#A0522D', // Lighter brown for hover states (static)
+          'blue-dark': '#654321', // Darker brown for text (static)
           'blue-50': '#FFF8F0', // Very light cream for backgrounds
           'blue-100': '#F5E6D3', // Light cream for subtle backgrounds
           'off-white': '#FFFEF7', // Warm off-white background
