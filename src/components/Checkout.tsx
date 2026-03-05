@@ -35,8 +35,8 @@ const Checkout: React.FC<CheckoutProps> = ({ cartItems, totalPrice: _totalPrice,
     return Number.isFinite(n) ? n : 60; // fallback just in case
   })();
 
-  // ONLY apply service charge when delivery is selected
-  const isServiceChargeApplicable = serviceType === 'delivery';
+  // ONLY apply service charge when delivery is selected AND enabled in settings
+  const isServiceChargeApplicable = serviceType === 'delivery' && siteSettings?.service_charge_enabled;
 
   // Label for service type
   const feeLabel = 'Delivery Fee';
