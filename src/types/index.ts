@@ -78,5 +78,6 @@ export interface SiteSettings {
   currency_code: string;
   service_charge_enabled?: boolean;
   service_charge_percentage?: number;
+  service_fee_amount?: number;
   service_charge_applicable_to?: string[];
 }

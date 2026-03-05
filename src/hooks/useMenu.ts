@@ -130,32 +130,32 @@ export const useMenu = () => {
   const addMenuItem = async (item: Omit<MenuItem, 'id'>) => {
     console.log('=== ADD MENU ITEM START ===');
     console.log('Input item:', item);
-    
+
     try {
       // Check if Supabase is properly configured
       if (!supabaseUrl || !supabaseAnonKey) {
         throw new Error('Supabase is not configured. Please check your environment variables.');
       }
-      
+
       console.log('=== INSERTING MENU ITEM ===');
-      
-      // Insert menu item
+
+      // Prepare item data with proper validation
       const itemData = {
-        name: item.name,
-        description: item.description,
-        base_price: item.basePrice,
-        category: item.category,
-        popular: item.popular || false,
-        available: item.available ?? true,
-        image_url: item.image || null,
-        discount_price: item.discountPrice || null,
-        discount_start_date: item.discountStartDate || null,
-        discount_end_date: item.discountEndDate || null,
-        discount_active: item.discountActive || false
+        name: String(item.name).trim(),
+        description: String(item.description).trim(),
+        base_price: Number(item.basePrice),
+        category: String(item.category),
+        popular: Boolean(item.popular),
+        available: Boolean(item.available),
+        image_url: item.image ? String(item.image) : null,
+        discount_price: item.discountPrice ? Number(item.discountPrice) : null,
+        discount_start_date: item.discountStartDate ? String(item.discountStartDate) : null,
+        discount_end_date: item.discountEndDate ? String(item.discountEndDate) : null,
+        discount_active: Boolean(item.discountActive)
       };
-      
+
       console.log('Item data for database:', itemData);
-      
+
       const { data: menuItem, error: itemError } = await supabase
         .from('menu_items')
         .insert(itemData)
@@ -166,25 +166,25 @@ export const useMenu = () => {
         console.error('Database insert error:', itemError);
         throw new Error(`Database error: ${itemError.message} (Code: ${itemError.code})`);
       }
-      
+
       if (!menuItem) {
         throw new Error('No data returned after insert');
       }
-      
+
       console.log('Menu item inserted successfully:', menuItem);
-      
+
       // Insert variations if any
       if (item.variations && item.variations.length > 0) {
         console.log('=== INSERTING VARIATIONS ===');
         console.log('Variations to insert:', item.variations);
-        
+
         const variationsData = item.variations.map(v => ({
           menu_item_id: menuItem.id,
-          name: v.name,
-          price: v.price,
-          type: v.type || null
+          name: String(v.name).trim(),
+          price: Number(v.price),
+          type: v.type ? String(v.type) : null
         }));
-        
+
         const { error: variationsError } = await supabase
           .from('variations')
           .insert(variationsData);
@@ -195,7 +195,7 @@ export const useMenu = () => {
           await supabase.from('menu_items').delete().eq('id', menuItem.id);
           throw new Error(`Failed to save variations: ${variationsError.message}`);
         }
-        
+
         console.log('Variations inserted successfully');
       }
 
@@ -203,14 +203,14 @@ export const useMenu = () => {
       if (item.addOns && item.addOns.length > 0) {
         console.log('=== INSERTING ADD-ONS ===');
         console.log('Add-ons to insert:', item.addOns);
-        
+
         const addOnsData = item.addOns.map(a => ({
           menu_item_id: menuItem.id,
-          name: a.name,
-          price: a.price,
-          category: a.category
+          name: String(a.name).trim(),
+          price: Number(a.price),
+          category: String(a.category)
         }));
-        
+
         const { error: addOnsError } = await supabase
           .from('add_ons')
           .insert(addOnsData);
@@ -221,17 +221,17 @@ export const useMenu = () => {
           await supabase.from('menu_items').delete().eq('id', menuItem.id);
           throw new Error(`Failed to save add-ons: ${addOnsError.message}`);
         }
-        
+
         console.log('Add-ons inserted successfully');
       }
 
       console.log('=== ADD MENU ITEM COMPLETED SUCCESSFULLY ===');
-      
+
       // Real-time subscription will handle the UI update
       return menuItem;
     } catch (err) {
       console.error('=== ADD MENU ITEM ERROR ===', err);
-      
+
       // Enhance error message for better debugging
       if (err instanceof Error) {
         throw new Error(`Failed to add menu item: ${err.message}`);
@@ -242,67 +242,106 @@ export const useMenu = () => {
   };
 
   const updateMenuItem = async (id: string, updates: Partial<MenuItem>) => {
+    console.log('=== UPDATE MENU ITEM START ===');
+    console.log('Item ID:', id);
+    console.log('Updates:', updates);
+
     try {
       // Update menu item
+      const itemUpdate = {
+        name: updates.name ? String(updates.name).trim() : undefined,
+        description: updates.description ? String(updates.description).trim() : undefined,
+        base_price: updates.basePrice ? Number(updates.basePrice) : undefined,
+        category: updates.category ? String(updates.category) : undefined,
+        popular: updates.popular !== undefined ? Boolean(updates.popular) : undefined,
+        available: updates.available !== undefined ? Boolean(updates.available) : undefined,
+        image_url: updates.image !== undefined ? (updates.image ? String(updates.image) : null) : undefined,
+        discount_price: updates.discountPrice !== undefined ? (updates.discountPrice ? Number(updates.discountPrice) : null) : undefined,
+        discount_start_date: updates.discountStartDate !== undefined ? (updates.discountStartDate ? String(updates.discountStartDate) : null) : undefined,
+        discount_end_date: updates.discountEndDate !== undefined ? (updates.discountEndDate ? String(updates.discountEndDate) : null) : undefined,
+        discount_active: updates.discountActive !== undefined ? Boolean(updates.discountActive) : undefined
+      };
+
+      // Remove undefined values
+      Object.keys(itemUpdate).forEach(key => {
+        if (itemUpdate[key as keyof typeof itemUpdate] === undefined) {
+          delete itemUpdate[key as keyof typeof itemUpdate];
+        }
+      });
+
+      console.log('Item update data:', itemUpdate);
+
       const { error: itemError } = await supabase
         .from('menu_items')
-        .update({
-          name: updates.name,
-          description: updates.description,
-          base_price: updates.basePrice,
-          category: updates.category,
-          popular: updates.popular,
-          available: updates.available,
-          image_url: updates.image || null,
-          discount_price: updates.discountPrice || null,
-          discount_start_date: updates.discountStartDate || null,
-          discount_end_date: updates.discountEndDate || null,
-          discount_active: updates.discountActive
-        })
+        .update(itemUpdate)
         .eq('id', id);
 
-      if (itemError) throw itemError;
-
-      // Delete existing variations and add-ons
-      await supabase.from('variations').delete().eq('menu_item_id', id);
-      await supabase.from('add_ons').delete().eq('menu_item_id', id);
-
-      // Insert new variations
-      if (updates.variations && updates.variations.length > 0) {
-        const { error: variationsError } = await supabase
-          .from('variations')
-          .insert(
-            updates.variations.map(v => ({
-              menu_item_id: id,
-              name: v.name,
-              price: v.price,
-              type: v.type || null
-            }))
-          );
-
-        if (variationsError) throw variationsError;
+      if (itemError) {
+        console.error('Menu item update error:', itemError);
+        throw new Error(`Failed to update menu item: ${itemError.message}`);
       }
 
-      // Insert new add-ons
-      if (updates.addOns && updates.addOns.length > 0) {
-        const { error: addOnsError } = await supabase
-          .from('add_ons')
-          .insert(
-            updates.addOns.map(a => ({
-              menu_item_id: id,
-              name: a.name,
-              price: a.price,
-              category: a.category
-            }))
-          );
+      // Delete existing variations and add-ons if we're updating them
+      if (updates.variations !== undefined) {
+        console.log('=== UPDATING VARIATIONS ===');
+        await supabase.from('variations').delete().eq('menu_item_id', id);
 
-        if (addOnsError) throw addOnsError;
+        // Insert new variations
+        if (updates.variations.length > 0) {
+          const variationsData = updates.variations.map(v => ({
+            menu_item_id: id,
+            name: String(v.name).trim(),
+            price: Number(v.price),
+            type: v.type ? String(v.type) : null
+          }));
+
+          const { error: variationsError } = await supabase
+            .from('variations')
+            .insert(variationsData);
+
+          if (variationsError) {
+            console.error('Variations update error:', variationsError);
+            throw new Error(`Failed to update variations: ${variationsError.message}`);
+          }
+        }
       }
+
+      // Update add-ons if provided
+      if (updates.addOns !== undefined) {
+        console.log('=== UPDATING ADD-ONS ===');
+        await supabase.from('add_ons').delete().eq('menu_item_id', id);
+
+        // Insert new add-ons
+        if (updates.addOns.length > 0) {
+          const addOnsData = updates.addOns.map(a => ({
+            menu_item_id: id,
+            name: String(a.name).trim(),
+            price: Number(a.price),
+            category: String(a.category)
+          }));
+
+          const { error: addOnsError } = await supabase
+            .from('add_ons')
+            .insert(addOnsData);
+
+          if (addOnsError) {
+            console.error('Add-ons update error:', addOnsError);
+            throw new Error(`Failed to update add-ons: ${addOnsError.message}`);
+          }
+        }
+      }
+
+      console.log('=== UPDATE MENU ITEM COMPLETED SUCCESSFULLY ===');
 
       // Real-time subscription will handle the UI update
     } catch (err) {
-      console.error('Error updating menu item:', err);
-      throw err;
+      console.error('=== UPDATE MENU ITEM ERROR ===', err);
+
+      if (err instanceof Error) {
+        throw new Error(`Failed to update menu item: ${err.message}`);
+      } else {
+        throw new Error(`Failed to update menu item: ${String(err)}`);
+      }
     }
   };
 

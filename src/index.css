@@ -8,10 +8,12 @@
 /* Custom helpers for CAFERO palette */
 .bg-blueprint-off-white { background-color: #FFFEF7; }
 .bg-blueprint-cream { background-color: #FAF7F0; }
-.text-blueprint-blue { color: #8B4513; }
+/* blueprint "blue" now tracks --accent-color variable so pink mode works automatically */
+.text-blueprint-blue { color: var(--accent-color); }
+.bg-blueprint-blue { background-color: var(--accent-color); }
+.border-blueprint-blue { border-color: var(--accent-color); }
+.ring-blueprint-blue { --tw-ring-color: var(--accent-color); }
 .text-blueprint-dark { color: #3D2914; }
-.border-blueprint-blue { border-color: #8B4513; }
-.ring-blueprint-blue { --tw-ring-color: #8B4513; }
 
 /* CAFERO Typography */
 .font-blueprint-display {
@@ -64,11 +66,12 @@ body {
   background-image: 
     radial-gradient(circle at 1px 1px, rgba(139, 69, 19, 0.15) 1px, transparent 0);
   background-size: 20px 20px;
+  touch-action: manipulation;
 }
 
 /* Enhanced elegance for CAFERO theme */
 .cafero-card {
-  background: linear-gradient(145deg, #FFFEF7 0%, #FAF7F0 100%);
+  background: var(--card-bg-color);
   box-shadow: 
     0 4px 6px rgba(139, 69, 19, 0.1),
     0 1px 3px rgba(139, 69, 19, 0.08);
@@ -82,17 +85,93 @@ body {
   transform: translateY(-2px);
 }
 
-/* Elegant buttons */
-.cafero-btn-primary {
-  background: linear-gradient(145deg, #8B4513 0%, #A0522D 100%);
-  box-shadow: 
-    0 4px 15px rgba(139, 69, 19, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+/* Mobile-first responsive improvements */
+@media (max-width: 640px) {
+  .cafero-card {
+    margin: 0.5rem;
+    padding: 1rem;
+  }
+  
+  .cafero-btn-primary {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.875rem;
+  }
 }
 
-.cafero-btn-primary:hover {
-  background: linear-gradient(145deg, #654321 0%, #8B4513 100%);
-  box-shadow: 
-    0 6px 20px rgba(139, 69, 19, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+/* menu grid and card utilities */
+.menu-section {
+  padding-top: 3rem;
+  padding-bottom: 3rem;
 }
+
+.menu-heading {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.menu-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.menu-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.12);
+}
+
+.add-button {
+  transition: transform 0.2s ease;
+}
+.add-button:hover {
+  transform: scale(1.1);
+}
+
+/* Touch-friendly interactions */
+@media (hover: none) and (pointer: coarse) {
+  .cafero-card:hover {
+    transform: none;
+  }
+  
+  .cafero-btn-primary:hover {
+    /* no action */
+  }
+}
+
+/* Better focus states for accessibility */
+.focus-ring:focus {
+  outline: 2px solid #8B4513;
+  outline-offset: 2px;
+}
+
+/* Improved form elements on mobile */
+@media (max-width: 640px) {
+  input[type="text"],
+  input[type="number"],
+  input[type="email"],
+  input[type="password"],
+  select,
+  textarea {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+}
+
+/* theme variables for default and pink mode */
+:root {
+  --bg-color: #FFFEF7; /* off-white */
+  --text-color: #3D2914; /* dark brown */
+  --accent-color: #8B4513; /* rich brown */
+  --secondary-text: #8B7355;
+  --card-bg-color: #FFFFFF;
+}
+
+.pink-mode {
+  --bg-color: #ffe4e6; /* soft pink */
+  --text-color: #6f2d5c; /* dark rose */
+  --accent-color: #d63384; /* vibrant pink */
+  --secondary-text: #a870a0;
+  --card-bg-color: #fff0f6;
+}
+
+/* helper utilities using variables */
+.bg-theme { background-color: var(--bg-color) !important; }
+.text-theme { color: var(--text-color) !important; }
+.accent-theme { color: var(--accent-color) !important; }
+.bg-card-theme { background-color: var(--card-bg-color) !important; }

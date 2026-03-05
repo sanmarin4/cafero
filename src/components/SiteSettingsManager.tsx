@@ -7,31 +7,50 @@ const SiteSettingsManager: React.FC = () => {
   const { siteSettings, loading, updateSiteSettings } = useSiteSettings();
   const { uploadImage, uploading } = useImageUpload();
   const [isEditing, setIsEditing] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
   const [formData, setFormData] = useState({
     site_name: '',
     site_description: '',
     currency: '',
     currency_code: '',
     service_charge_enabled: false,
-    service_charge_percentage: 7.5,
-    service_charge_applicable_to: ['dine-in', 'delivery'] as string[]
+    service_charge_percentage: 60,
+    service_fee_amount: 60,
+    service_charge_applicable_to: [] as string[]
   });
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string>('');
 
   React.useEffect(() => {
-    if (siteSettings) {
-      setFormData({
-        site_name: siteSettings.site_name,
-        site_description: siteSettings.site_description,
-        currency: siteSettings.currency,
-        currency_code: siteSettings.currency_code,
-        service_charge_enabled: siteSettings.service_charge_enabled ?? false,
-        service_charge_percentage: siteSettings.service_charge_percentage ?? 7.5,
-        service_charge_applicable_to: siteSettings.service_charge_applicable_to ?? ['dine-in', 'delivery']
-      });
-      setLogoPreview(siteSettings.site_logo);
-    }
+    if (!siteSettings) return;
+
+    setFormData({
+      site_name: siteSettings.site_name || '',
+      site_description: siteSettings.site_description || '',
+      currency: siteSettings.currency || '',
+      currency_code: siteSettings.currency_code || '',
+
+      service_charge_enabled:
+        siteSettings.service_charge_enabled === true,
+
+      service_charge_percentage: (() => {
+        const pct = Number(siteSettings.service_charge_percentage);
+        return Number.isFinite(pct) ? pct : 60;
+      })(),
+
+      service_fee_amount: (() => {
+        const amt = Number(siteSettings.service_fee_amount);
+        return Number.isFinite(amt) ? amt : 60;
+      })(),
+
+      service_charge_applicable_to: Array.isArray(
+        siteSettings.service_charge_applicable_to
+      )
+        ? siteSettings.service_charge_applicable_to
+        : []
+    });
+
+    setLogoPreview(siteSettings.site_logo || '');
   }, [siteSettings]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -57,66 +76,70 @@ const SiteSettingsManager: React.FC = () => {
   const handleSave = async () => {
     try {
       let logoUrl = logoPreview;
-      
-      // Upload new logo if selected
+
+      // Upload logo if changed
       if (logoFile) {
-        try {
-          const uploadedUrl = await uploadImage(logoFile, 'site_logo');
-          logoUrl = uploadedUrl;
-        } catch (error) {
-          console.error('Error uploading logo:', error);
-          alert('Failed to upload logo. Please try again.');
-          return;
-        }
+        const uploadedUrl = await uploadImage(logoFile, 'site_logo');
+        logoUrl = uploadedUrl;
       }
 
-      // Update all settings
+      // Ensure percentage is a valid number
+      const percentage = Number(formData.service_charge_percentage);
+      const feeAmount = Number(formData.service_fee_amount);
+
       await updateSiteSettings({
         site_name: formData.site_name,
         site_description: formData.site_description,
         currency: formData.currency,
         currency_code: formData.currency_code,
-        site_logo: logoUrl,
-        service_charge_enabled: formData.service_charge_enabled,
-        service_charge_percentage: formData.service_charge_percentage,
-        service_charge_applicable_to: formData.service_charge_applicable_to
+        site_logo: logoUrl || '',
+        service_charge_enabled: Boolean(formData.service_charge_enabled),
+        service_charge_percentage: isNaN(percentage) ? 0 : percentage,
+        service_fee_amount: isNaN(feeAmount) ? 0 : feeAmount,
+        service_charge_applicable_to: formData.service_charge_applicable_to || []
       });
 
       setIsEditing(false);
       setLogoFile(null);
+
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+
     } catch (error) {
       console.error('Error saving site settings:', error);
+      alert('Failed to save settings.');
     }
   };
 
   const handleCancel = () => {
     if (siteSettings) {
       setFormData({
-        site_name: siteSettings.site_name,
-        site_description: siteSettings.site_description,
-        currency: siteSettings.currency,
-        currency_code: siteSettings.currency_code,
-        service_charge_enabled: siteSettings.service_charge_enabled ?? false,
-        service_charge_percentage: siteSettings.service_charge_percentage ?? 7.5,
-        service_charge_applicable_to: siteSettings.service_charge_applicable_to ?? ['dine-in', 'delivery']
+        site_name: siteSettings.site_name || '',
+        site_description: siteSettings.site_description || '',
+        currency: siteSettings.currency || '',
+        currency_code: siteSettings.currency_code || '',
+
+        service_charge_enabled:
+          siteSettings.service_charge_enabled === true,
+
+        service_charge_percentage:
+          Number(siteSettings.service_charge_percentage) || 60,
+
+        service_fee_amount:
+          Number(siteSettings.service_fee_amount) || 60,
+
+        service_charge_applicable_to: Array.isArray(
+          siteSettings.service_charge_applicable_to
+        )
+          ? siteSettings.service_charge_applicable_to
+          : []
       });
-      setLogoPreview(siteSettings.site_logo);
+
+      setLogoPreview(siteSettings.site_logo || '');
     }
+
     setIsEditing(false);
     setLogoFile(null);
-  };
-
-  const handleServiceTypeToggle = (serviceType: string) => {
-    setFormData(prev => {
-      const current = prev.service_charge_applicable_to;
-      const updated = current.includes(serviceType)
-        ? current.filter(type => type !== serviceType)
-        : [...current, serviceType];
-      return {
-        ...prev,
-        service_charge_applicable_to: updated
-      };
-    });
   };
 
   if (loading) {
@@ -136,6 +159,11 @@ const SiteSettingsManager: React.FC = () => {
 
   return (
     <div className="bg-white rounded-xl shadow-sm p-6">
+      {saveSuccess && (
+        <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+          <p className="text-green-800 font-medium">✓ Settings saved successfully! Delivery fee is now set to ₱{formData.service_fee_amount} and will apply to all delivery orders.</p>
+        </div>
+      )}
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-noto font-semibold text-black">Site Settings</h2>
         {!isEditing ? (
@@ -285,78 +313,40 @@ const SiteSettingsManager: React.FC = () => {
         {/* Service Charge Settings */}
         <div className="border-t border-gray-200 pt-6">
           <h3 className="text-lg font-medium text-black mb-4">Service Charge Settings</h3>
-          
-          {/* Enable Service Charge */}
+
+          {/* Service Charge Amount */}
           <div className="mb-4">
-            <label className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={formData.service_charge_enabled}
-                onChange={(e) => setFormData(prev => ({ ...prev, service_charge_enabled: e.target.checked }))}
-                disabled={!isEditing}
-                className="rounded border-gray-300 text-red-600 focus:ring-red-500 disabled:opacity-50"
-              />
-              <span className="text-sm font-medium text-gray-700">Enable Service Charge</span>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Delivery Fee (₱)
             </label>
+
+            {isEditing ? (
+              <input
+                type="number"
+                step="1"
+                min="0"
+                value={formData.service_fee_amount}
+                onChange={(e) => {
+                  const value = parseFloat(e.target.value)
+
+                  setFormData(prev => ({
+                    ...prev,
+                    service_fee_amount:
+                      isNaN(value) ? 0 : Math.max(0, value)
+                  }))
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+              />
+            ) : (
+              <p className="text-lg font-medium text-black">
+                ₱{Number(formData.service_fee_amount || 60).toFixed(2)}
+              </p>
+            )}
+
+            <p className="text-xs text-gray-500 mt-1">
+              Automatically applied when customers select Delivery
+            </p>
           </div>
-
-          {formData.service_charge_enabled && (
-            <>
-              {/* Service Charge Percentage */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Service Charge Percentage
-                </label>
-                {isEditing ? (
-                  <input
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    max="100"
-                    value={formData.service_charge_percentage}
-                    onChange={(e) => setFormData(prev => ({ ...prev, service_charge_percentage: parseFloat(e.target.value) || 0 }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                    placeholder="e.g., 7.5"
-                  />
-                ) : (
-                  <p className="text-lg font-medium text-black">{siteSettings?.service_charge_percentage ?? 7.5}%</p>
-                )}
-              </div>
-
-              {/* Applicable Service Types */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Applicable To Service Types
-                </label>
-                {isEditing ? (
-                  <div className="space-y-2">
-                    {['dine-in', 'pickup', 'delivery'].map((serviceType) => (
-                      <label key={serviceType} className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          checked={formData.service_charge_applicable_to.includes(serviceType)}
-                          onChange={() => handleServiceTypeToggle(serviceType)}
-                          className="rounded border-gray-300 text-red-600 focus:ring-red-500"
-                        />
-                        <span className="text-sm text-gray-700 capitalize">{serviceType.replace('-', ' ')}</span>
-                      </label>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex flex-wrap gap-2">
-                    {(siteSettings?.service_charge_applicable_to || []).map((serviceType) => (
-                      <span
-                        key={serviceType}
-                        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 capitalize"
-                      >
-                        {serviceType.replace('-', ' ')}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </>
-          )}
         </div>
       </div>
     </div>
