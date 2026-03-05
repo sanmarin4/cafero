@@ -25,20 +25,27 @@ interface MenuProps {
 
 const Menu: React.FC<MenuProps> = ({ menuItems, addToCart, cartItems, updateQuantity, selectedCategory, onCategoryClick }) => {
   const { categories } = useCategories();
-  const [activeCategory, setActiveCategory] = React.useState(selectedCategory || 'hot-coffee');
+  const [activeCategory, setActiveCategory] = React.useState(selectedCategory || 'all');
 
   // Preload images when menu items change
   React.useEffect(() => {
     if (menuItems.length > 0) {
       // Preload images for visible category first
-      const visibleItems = menuItems.filter(item => item.category === activeCategory);
-      preloadImages(visibleItems);
+      const itemsToPreload = activeCategory === 'all' 
+        ? menuItems.slice(0, 10) 
+        : menuItems.filter(item => item.category === activeCategory);
+      
+      preloadImages(itemsToPreload);
 
       // Then preload other images after a short delay
-      setTimeout(() => {
-        const otherItems = menuItems.filter(item => item.category !== activeCategory);
+      const timer = setTimeout(() => {
+        const otherItems = activeCategory === 'all'
+          ? menuItems.slice(10)
+          : menuItems.filter(item => item.category !== activeCategory);
         preloadImages(otherItems);
       }, 1000);
+      
+      return () => clearTimeout(timer);
     }
   }, [menuItems, activeCategory]);
 
@@ -47,11 +54,11 @@ const Menu: React.FC<MenuProps> = ({ menuItems, addToCart, cartItems, updateQuan
     onCategoryClick(categoryId);
   };
 
-  // when available categories load, ensure activeCategory exists
+  // when available categories load, ensure activeCategory exists or is 'all'
   React.useEffect(() => {
-    if (categories.length > 0) {
-      const defaultCategory = categories.find(cat => cat.id === 'dim-sum') || categories[0];
+    if (categories.length > 0 && activeCategory !== 'all') {
       if (!categories.find(cat => cat.id === activeCategory)) {
+        const defaultCategory = categories.find(cat => cat.id === 'dim-sum') || categories[0];
         setActiveCategory(defaultCategory.id);
       }
     }
@@ -60,15 +67,19 @@ const Menu: React.FC<MenuProps> = ({ menuItems, addToCart, cartItems, updateQuan
   // sync with prop and scroll into view when parent selection changes
   React.useEffect(() => {
     if (selectedCategory && selectedCategory !== activeCategory) {
-      // update internal state and scroll
       setActiveCategory(selectedCategory);
-      const element = document.getElementById(selectedCategory);
-      if (element) {
-        const headerHeight = 64;
-        const mobileNavHeight = 60;
-        const offset = headerHeight + mobileNavHeight + 20;
-        const elementPosition = element.offsetTop - offset;
-        window.scrollTo({ top: elementPosition, behavior: 'smooth' });
+      
+      if (selectedCategory !== 'all') {
+        const element = document.getElementById(selectedCategory);
+        if (element) {
+          const headerHeight = 64;
+          const mobileNavHeight = 60;
+          const offset = headerHeight + mobileNavHeight + 20;
+          const elementPosition = element.offsetTop - offset;
+          window.scrollTo({ top: elementPosition, behavior: 'smooth' });
+        }
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     }
   }, [selectedCategory, activeCategory]);

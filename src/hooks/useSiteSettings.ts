@@ -133,8 +133,7 @@ export const useSiteSettings = () => {
 
         return supabase
           .from('site_settings')
-          .update({ value: stringValue })
-          .eq('id', key);
+          .upsert({ id: key, value: stringValue }, { onConflict: 'id' });
       });
 
       const results = await Promise.all(updatePromises);

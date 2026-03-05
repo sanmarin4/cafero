@@ -314,10 +314,36 @@ const SiteSettingsManager: React.FC = () => {
         <div className="border-t border-gray-200 pt-6">
           <h3 className="text-lg font-medium text-black mb-4">Service Charge Settings</h3>
 
+          {/* Enable Delivery Fee Toggle */}
+          <div className="mb-6">
+            <label className="flex items-center space-x-3 cursor-pointer">
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  checked={formData.service_charge_enabled}
+                  onChange={(e) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      service_charge_enabled: e.target.checked
+                    }))
+                  }}
+                  disabled={!isEditing}
+                  className="sr-only"
+                />
+                <div className={`block w-14 h-8 rounded-full transition-colors duration-200 ${formData.service_charge_enabled ? 'bg-red-600' : 'bg-gray-300'}`}></div>
+                <div className={`absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform duration-200 ${formData.service_charge_enabled ? 'translate-x-6' : ''}`}></div>
+              </div>
+              <span className="text-sm font-medium text-gray-700">Enable Delivery Fee</span>
+            </label>
+            <p className="text-xs text-gray-500 mt-1 ml-17">
+              If enabled, a fixed delivery fee will be added to all delivery orders.
+            </p>
+          </div>
+
           {/* Service Charge Amount */}
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Delivery Fee (₱)
+              Delivery Fee Amount (₱)
             </label>
 
             {isEditing ? (
@@ -339,12 +365,14 @@ const SiteSettingsManager: React.FC = () => {
               />
             ) : (
               <p className="text-lg font-medium text-black">
-                ₱{Number(formData.service_fee_amount || 60).toFixed(2)}
+                ₱{Number(formData.service_fee_amount ?? 0).toFixed(2)}
               </p>
             )}
 
             <p className="text-xs text-gray-500 mt-1">
-              Automatically applied when customers select Delivery
+              {formData.service_charge_enabled
+                ? 'Automatically applied when customers select Delivery'
+                : 'Delivery fee is currently disabled'}
             </p>
           </div>
         </div>
