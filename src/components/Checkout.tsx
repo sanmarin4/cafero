@@ -67,49 +67,72 @@ const Checkout: React.FC<CheckoutProps> = ({ cartItems, totalPrice: _totalPrice,
       ? (pickupTime === 'custom' ? customTime : `${pickupTime} minutes`)
       : '';
 
-    const orderDetails = `
+ const orderDetails = `
 CAFERO ORDER
 
-👤 Customer: ${customerName}
-📞 Contact: ${contactNumber}
-📍 Service: ${serviceType.charAt(0).toUpperCase() + serviceType.slice(1)}
+👤 Customer Name: ${customerName}
+📞 Contact Number: ${contactNumber}
+📍 Address: ${serviceType === 'delivery' ? deliveryInfo.location : 'N/A'}
+🏷 Landmark: ${serviceType === 'delivery' && deliveryInfo.landmark ? deliveryInfo.landmark : 'N/A'}
+
+🛎 Service Type: ${serviceType.toUpperCase()}
 ${serviceType === 'pickup' ? `⏰ Pickup Time: ${timeInfo}` : ''}
-${serviceType === 'delivery' ? `🏠 Address: ${deliveryInfo.location}${deliveryInfo.landmark ? ' (Landmark: ' + deliveryInfo.landmark + ')' : ''}` : ''}
 
+━━━━━━━━━━━━━━━━━━
+📋 ORDER DETAILS
+━━━━━━━━━━━━━━━━━━
 
-📋 ORDER DETAILS:
 ${cartItems.map(item => {
-      // include category capp'd for clarity
-      const cat = item.category ? ` (${item.category.charAt(0).toUpperCase() + item.category.slice(1)})` : '';
-      let itemDetails = `• ${item.name}${cat}`;
-      const allVariations = item.selectedVariations && item.selectedVariations.length > 0
-        ? item.selectedVariations
-        : item.selectedVariation ? [item.selectedVariation] : [];
-      if (allVariations.length > 0) {
-        itemDetails += ` (${allVariations.map(v => v.name).join(', ')})`;
-      }
-      if (item.selectedAddOns && item.selectedAddOns.length > 0) {
-        itemDetails += ` + ${item.selectedAddOns.map(addOn =>
-          addOn.quantity && addOn.quantity > 1
-            ? `${addOn.name} x${addOn.quantity}`
-            : addOn.name
-        ).join(', ')}`;
-      }
-      itemDetails += ` x${item.quantity} - ₱${item.totalPrice * item.quantity}`;
-      return itemDetails;
-    }).join('\n')}
+  let itemDetails = `• ${item.name}`;
 
-💰 SUBTOTAL: ₱${subtotal.toFixed(2)}
-${isServiceChargeApplicable ? `💼 ${feeLabel}: ₱${serviceCharge.toFixed(2)}` : ''}
-💰 TOTAL: ₱${finalTotal.toFixed(2)}
+  // ADD CATEGORY DISPLAY
+  if (item.category) {
+    itemDetails += ` [${item.category}]`;
+  }
 
-💳 Payment: ${selectedPaymentMethod?.name || paymentMethod}
-📸 Payment Screenshot: Please attach your payment receipt screenshot
+  const allVariations =
+    item.selectedVariations && item.selectedVariations.length > 0
+      ? item.selectedVariations
+      : item.selectedVariation
+      ? [item.selectedVariation]
+      : [];
+
+  if (allVariations.length > 0) {
+    itemDetails += ` (${allVariations.map(v => v.name).join(', ')})`;
+  }
+
+  if (item.selectedAddOns && item.selectedAddOns.length > 0) {
+    itemDetails += ` + ${item.selectedAddOns
+      .map(addOn =>
+        addOn.quantity && addOn.quantity > 1
+          ? `${addOn.name} x${addOn.quantity}`
+          : addOn.name
+      )
+      .join(', ')}`;
+  }
+
+  itemDetails += ` | Qty: ${item.quantity}`;
+  itemDetails += ` | ₱${(item.totalPrice * item.quantity).toFixed(2)}`;
+
+  return itemDetails;
+}).join('\n')}
+
+━━━━━━━━━━━━━━━━━━
+💰 PAYMENT SUMMARY
+━━━━━━━━━━━━━━━━━━
+
+Subtotal: ₱${subtotal.toFixed(2)}
+${isServiceChargeApplicable ? `${feeLabel}: ₱${serviceCharge.toFixed(2)}` : ''}
+TOTAL: ₱${finalTotal.toFixed(2)}
+
+💳 Payment Method: ${selectedPaymentMethod?.name || paymentMethod}
+
+📸 Please attach your payment screenshot.
 
 ${notes ? `📝 Notes: ${notes}` : ''}
 
-Please confirm this order to proceed. Thank you for choosing CAFERO! 🥟
-    `.trim();
+Thank you for ordering from CAFERO ☕
+`.trim();
 
     const encodedMessage = encodeURIComponent(orderDetails);
     const messengerUrl = `https://m.me/Cafero.ph?text=${encodedMessage}`;
@@ -147,12 +170,7 @@ Please confirm this order to proceed. Thank you for choosing CAFERO! 🥟
               {cartItems.map((item) => (
                 <div key={item.id} className="flex items-center justify-between py-2 border-b border-blueprint-100">
                   <div>
-                    <h4 className="font-medium text-blueprint-dark">
-                      {item.name}
-                      {item.category && (
-                        <span className="ml-2 text-xs text-blueprint-gray-soft">({item.category.charAt(0).toUpperCase() + item.category.slice(1)})</span>
-                      )}
-                    </h4>
+                    <h4 className="font-medium text-blueprint-dark">{item.name}</h4>
                     {item.selectedVariation && (
                       <p className="text-sm text-blueprint-gray-soft">Size: {item.selectedVariation.name}</p>
                     )}
@@ -430,89 +448,137 @@ Please confirm this order to proceed. Thank you for choosing CAFERO! 🥟
           </div>
         </div>
 
-        {/* Order Summary */}
-        <div className="bg-blueprint-cream rounded-xl shadow-sm p-6 cafero-card">
-          <h2 className="text-2xl font-blueprint-display font-medium text-blueprint-dark mb-6">Final Order Summary</h2>
+{/* Order Summary */}
+<div className="bg-blueprint-cream rounded-xl shadow-sm p-6 cafero-card">
+  <h2 className="text-2xl font-blueprint-display font-medium text-blueprint-dark mb-6">
+    Final Order Summary
+  </h2>
 
-          <div className="space-y-4 mb-6">
-            <div className="bg-blueprint-blue-50 rounded-lg p-4">
-              <h4 className="font-medium text-blueprint-dark mb-2">Customer Details</h4>
-              <p className="text-sm text-blueprint-gray-soft">Name: {customerName}</p>
-              <p className="text-sm text-blueprint-gray-soft">Contact: {contactNumber}</p>
-              <p className="text-sm text-blueprint-gray-soft">Service: {serviceType.charAt(0).toUpperCase() + serviceType.slice(1)}</p>
-              {serviceType === 'delivery' && (
-                <>
-                  <p className="text-sm text-blueprint-gray-soft">Address: {deliveryInfo.location}</p>
-                  {deliveryInfo.landmark && (
-                    <p className="text-sm text-blueprint-gray-soft">Landmark: {deliveryInfo.landmark}</p>
-                  )}
-                </>
-              )}
-              {serviceType === 'pickup' && (
-                <p className="text-sm text-gray-600">
-                  Pickup Time: {pickupTime === 'custom' ? customTime : `${pickupTime} minutes`}
-                </p>
-              )}
-            </div>
+  <div className="space-y-4 mb-6">
+    {/* Customer Details */}
+    <div className="bg-blueprint-blue-50 rounded-lg p-4 space-y-2">
+      <h4 className="font-medium text-blueprint-dark mb-2">
+        Customer Details
+      </h4>
 
-            {cartItems.map((item) => (
-              <div key={item.id} className="flex items-center justify-between py-2 border-b border-blueprint-100">
-                <div>
-                  <h4 className="font-medium text-blueprint-dark">
-                    {item.name}
-                    {item.category && (
-                      <span className="ml-2 text-xs text-blueprint-gray-soft">({item.category.charAt(0).toUpperCase() + item.category.slice(1)})</span>
-                    )}
-                  </h4>
-                  {item.selectedVariation && (
-                    <p className="text-sm text-blueprint-gray-soft">Size: {item.selectedVariation.name}</p>
-                  )}
-                  {item.selectedAddOns && item.selectedAddOns.length > 0 && (
-                    <p className="text-sm text-blueprint-gray-soft">
-                      Add-ons: {item.selectedAddOns.map(addOn =>
-                        addOn.quantity && addOn.quantity > 1
-                          ? `${addOn.name} x${addOn.quantity}`
-                          : addOn.name
-                      ).join(', ')}
-                    </p>
-                  )}
-                  <p className="text-sm text-blueprint-gray-soft">₱{item.totalPrice} x {item.quantity}</p>
-                </div>
-                <span className="font-semibold text-blueprint-dark">₱{item.totalPrice * item.quantity}</span>
-              </div>
-            ))}
-          </div>
+      <p className="text-sm text-blueprint-gray-soft">
+        Name: {customerName}
+      </p>
 
-          <div className="border-t border-blueprint-100 pt-4 mb-6 space-y-2">
-            <div className="flex items-center justify-between text-lg text-blueprint-dark">
-              <span>Subtotal:</span>
-              <span>₱{subtotal.toFixed(2)}</span>
-            </div>
-            {isServiceChargeApplicable && (
-              <div className="flex items-center justify-between text-lg text-blueprint-gray-soft">
-                <span>{feeLabel}:</span>
-                <span>₱{serviceCharge.toFixed(2)}</span>
-              </div>
+      <p className="text-sm text-blueprint-gray-soft">
+        Contact: {contactNumber}
+      </p>
+
+      {/* Address / Delivery Location */}
+      <p className="text-sm text-blueprint-gray-soft">
+        Address: {serviceType === 'delivery'
+          ? deliveryInfo.location || 'No delivery address provided'
+          : 'Pickup Order'}
+      </p>
+
+      {deliveryInfo.landmark && (
+        <p className="text-sm text-blueprint-gray-soft">
+          Landmark: {deliveryInfo.landmark}
+        </p>
+      )}
+
+      <p className="text-sm text-blueprint-gray-soft">
+        Service:
+        {" "}
+        {serviceType.charAt(0).toUpperCase() + serviceType.slice(1)}
+      </p>
+
+      {serviceType === 'pickup' && (
+        <p className="text-sm text-gray-600">
+          Pickup Time: {pickupTime === 'custom'
+            ? customTime
+            : `${pickupTime} minutes`}
+        </p>
+      )}
+    </div>
+
+    {/* Order Items */}
+    {cartItems.map((item) => (
+      <div
+        key={item.id}
+        className="flex items-center justify-between py-3 border-b border-blueprint-100"
+      >
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h4 className="font-medium text-blueprint-dark">
+              {item.name}
+            </h4>
+
+            {/* Product Category Label */}
+            {item.category && (
+              <span className="text-xs px-2 py-1 rounded-full bg-blueprint-blue/10 text-blueprint-blue font-medium">
+                {item.category}
+              </span>
             )}
-            <div className="flex items-center justify-between text-2xl font-blueprint-display font-semibold text-blueprint-dark pt-2 border-t border-blueprint-100">
-              <span>Total:</span>
-              <span>₱{finalTotal.toFixed(2)}</span>
-            </div>
           </div>
 
-          <button
-            onClick={handlePlaceOrder}
-            className="w-full py-4 rounded-xl font-medium text-lg transition-all duration-200 transform bg-blueprint-blue text-white hover:bg-blueprint-blue-light hover:scale-[1.02]"
-          >
-            Place Order via Messenger
-          </button>
+          {item.selectedVariation && (
+            <p className="text-sm text-blueprint-gray-soft">
+              Size: {item.selectedVariation.name}
+            </p>
+          )}
+
+          {item.selectedAddOns && item.selectedAddOns.length > 0 && (
+            <p className="text-sm text-blueprint-gray-soft">
+              Add-ons:{" "}
+              {item.selectedAddOns.map(addOn =>
+                addOn.quantity && addOn.quantity > 1
+                  ? `${addOn.name} x${addOn.quantity}`
+                  : addOn.name
+              ).join(", ")}
+            </p>
+          )}
+
+          <p className="text-sm text-blueprint-gray-soft">
+            ₱{item.totalPrice} × {item.quantity}
+          </p>
+        </div>
+
+        <span className="font-semibold text-blueprint-dark">
+          ₱{(item.totalPrice * item.quantity).toFixed(2)}
+        </span>
+      </div>
+    ))}
+  </div>
+
+  {/* Totals */}
+  <div className="border-t border-blueprint-100 pt-4 mb-6 space-y-2">
+    <div className="flex items-center justify-between text-lg text-blueprint-dark">
+      <span>Subtotal:</span>
+      <span>₱{subtotal.toFixed(2)}</span>
+    </div>
+
+    {isServiceChargeApplicable && (
+      <div className="flex items-center justify-between text-lg text-blueprint-gray-soft">
+        <span>{feeLabel}:</span>
+        <span>₱{serviceCharge.toFixed(2)}</span>
+      </div>
+    )}
+
+    <div className="flex items-center justify-between text-2xl font-blueprint-display font-semibold text-blueprint-dark pt-2 border-t border-blueprint-100">
+      <span>Total:</span>
+      <span>₱{finalTotal.toFixed(2)}</span>
+    </div>
+  </div>
+
+  <button
+    onClick={handlePlaceOrder}
+    className="w-full py-4 rounded-xl font-medium text-lg transition-all duration-200 transform bg-blueprint-blue text-white hover:bg-blueprint-blue-light hover:scale-[1.02]"
+  >
+    Place Order via Messenger
+  </button>
+</div>
 
           <p className="text-xs text-blueprint-gray-soft text-center mt-3">
             You'll be redirected to Facebook Messenger to confirm your order. Please don't forget to attach your payment screenshot!
           </p>
         </div>
       </div>
-    </div>
   );
 };
 

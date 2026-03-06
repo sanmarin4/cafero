@@ -1,0 +1,177 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* CAFERO Custom Styles */
+/* Custom helpers for CAFERO palette */
+.bg-blueprint-off-white { background-color: #FFFEF7; }
+.bg-blueprint-cream { background-color: #FAF7F0; }
+/* blueprint "blue" now tracks --accent-color variable so pink mode works automatically */
+.text-blueprint-blue { color: var(--accent-color); }
+.bg-blueprint-blue { background-color: var(--accent-color); }
+.border-blueprint-blue { border-color: var(--accent-color); }
+.ring-blueprint-blue { --tw-ring-color: var(--accent-color); }
+.text-blueprint-dark { color: #3D2914; }
+
+/* CAFERO Typography */
+.font-blueprint-display {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.font-blueprint-bold {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.font-blueprint {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+/* Hide scrollbar for mobile nav */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Image loading optimization */
+img {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+}
+
+/* Preload critical images */
+.preload-image {
+  content: '';
+  position: absolute;
+  left: -9999px;
+  top: -9999px;
+  width: 1px;
+  height: 1px;
+}
+
+/* CAFERO Paper Texture Effect */
+body {
+  background-color: #FFFEF7;
+  background-image: 
+    radial-gradient(circle at 1px 1px, rgba(139, 69, 19, 0.15) 1px, transparent 0);
+  background-size: 20px 20px;
+  touch-action: manipulation;
+}
+
+/* Enhanced elegance for CAFERO theme */
+.cafero-card {
+  background: var(--card-bg-color);
+  box-shadow: 
+    0 4px 6px rgba(139, 69, 19, 0.1),
+    0 1px 3px rgba(139, 69, 19, 0.08);
+  border: 1px solid rgba(139, 69, 19, 0.1);
+}
+
+.cafero-card:hover {
+  box-shadow: 
+    0 10px 25px rgba(139, 69, 19, 0.15),
+    0 4px 10px rgba(139, 69, 19, 0.1);
+  transform: translateY(-2px);
+}
+
+/* Mobile-first responsive improvements */
+@media (max-width: 640px) {
+  .cafero-card {
+    margin: 0.5rem;
+    padding: 1rem;
+  }
+  
+  .cafero-btn-primary {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.875rem;
+  }
+}
+
+/* menu grid and card utilities */
+.menu-section {
+  padding-top: 3rem;
+  padding-bottom: 3rem;
+}
+
+.menu-heading {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.menu-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.menu-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.12);
+}
+
+.add-button {
+  transition: transform 0.2s ease;
+}
+.add-button:hover {
+  transform: scale(1.1);
+}
+
+/* Touch-friendly interactions */
+@media (hover: none) and (pointer: coarse) {
+  .cafero-card:hover {
+    transform: none;
+  }
+  
+  .cafero-btn-primary:hover {
+    /* no action */
+  }
+}
+
+/* Better focus states for accessibility */
+.focus-ring:focus {
+  outline: 2px solid #8B4513;
+  outline-offset: 2px;
+}
+
+/* Improved form elements on mobile */
+@media (max-width: 640px) {
+  input[type="text"],
+  input[type="number"],
+  input[type="email"],
+  input[type="password"],
+  select,
+  textarea {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+}
+
+/* theme variables for default and pink mode */
+:root {
+  --bg-color: #FFFEF7; /* off-white */
+  --text-color: #3D2914; /* dark brown */
+  --accent-color: #8B4513; /* rich brown */
+  --secondary-text: #8B7355;
+  --card-bg-color: #FFFFFF;
+}
+
+.pink-mode {
+  --bg-color: #ffe4e6; /* soft pink */
+  --text-color: #6f2d5c; /* dark rose */
+  --accent-color: #d63384; /* vibrant pink */
+  --secondary-text: #a870a0;
+  --card-bg-color: #fff0f6;
+}
+
+/* helper utilities using variables */
+.bg-theme { background-color: var(--bg-color) !important; }
+.text-theme { color: var(--text-color) !important; }
+.accent-theme { color: var(--accent-color) !important; }
+.bg-card-theme { background-color: var(--card-bg-color) !important; }

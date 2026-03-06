@@ -49,8 +49,10 @@ function MainApp() {
     setSelectedCategory(categoryId);
   };
 
-  // no filtering here - Menu will handle category selection
-  const filteredMenuItems = menuItems;
+  // Filter menu items based on selected category
+  const filteredMenuItems = selectedCategory === 'all' 
+    ? menuItems 
+    : menuItems.filter(item => item.category === selectedCategory);
 
   return (
     <div className="min-h-screen bg-theme font-sans">
@@ -75,6 +77,7 @@ function MainApp() {
           menuItems={filteredMenuItems}
           addToCart={cart.addToCart}
           cartItems={cart.cartItems}
+          updateQuantity={cart.updateQuantity}
           selectedCategory={selectedCategory}
           onCategoryClick={handleCategoryClick}
         />
