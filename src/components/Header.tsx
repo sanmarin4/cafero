@@ -18,10 +18,10 @@ const Header: React.FC<HeaderProps> = ({
   const { theme, toggleTheme } = useContext(ThemeContext);
 
   return (
-    <header className="sticky top-0 z-50 bg-theme border-b border-blueprint-blue/20 backdrop-blur-md overflow-x-hidden">
+    <header className="sticky top-0 z-50 bg-theme border-b border-blueprint-blue/20 backdrop-blur-md">
       <div className="w-full px-6 sm:px-12 lg:px-16 xl:px-24">
 
-        <div className="flex items-center justify-between h-16 sm:h-20 flex-wrap">
+        <div className="flex items-center justify-between h-20">
 
           {/* Logo + Name */}
           <button
@@ -40,13 +40,13 @@ const Header: React.FC<HeaderProps> = ({
               </div>
             )}
 
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#8B4513] truncate">
+            <h1 className="text-3xl font-bold tracking-tight text-[#8B4513]">
               {siteSettings?.site_name?.toUpperCase() || "CAFERO"}
             </h1>
           </button>
 
           {/* Right Section */}
-          <div className="flex items-center gap-4 flex-wrap justify-end">
+          <div className="flex items-center gap-4">
 
             {/* Store Hours */}
             <div className="hidden sm:block text-right">
