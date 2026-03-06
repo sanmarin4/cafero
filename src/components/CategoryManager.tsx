@@ -17,7 +17,7 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ onBack }) => {
     sort_order: 0,
     active: true
   });
-
+   
   const handleAddCategory = () => {
     const nextSortOrder = Math.max(...categories.map(c => c.sort_order), 0) + 1;
     setFormData({
