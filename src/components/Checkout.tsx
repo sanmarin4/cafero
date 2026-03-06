@@ -74,11 +74,14 @@ CAFERO ORDER
 📞 Contact: ${contactNumber}
 📍 Service: ${serviceType.charAt(0).toUpperCase() + serviceType.slice(1)}
 ${serviceType === 'pickup' ? `⏰ Pickup Time: ${timeInfo}` : ''}
+${serviceType === 'delivery' ? `🏠 Address: ${deliveryInfo.location}${deliveryInfo.landmark ? ' (Landmark: ' + deliveryInfo.landmark + ')' : ''}` : ''}
 
 
 📋 ORDER DETAILS:
 ${cartItems.map(item => {
-      let itemDetails = `• ${item.name}`;
+      // include category capp'd for clarity
+      const cat = item.category ? ` (${item.category.charAt(0).toUpperCase() + item.category.slice(1)})` : '';
+      let itemDetails = `• ${item.name}${cat}`;
       const allVariations = item.selectedVariations && item.selectedVariations.length > 0
         ? item.selectedVariations
         : item.selectedVariation ? [item.selectedVariation] : [];
@@ -144,7 +147,12 @@ Please confirm this order to proceed. Thank you for choosing CAFERO! 🥟
               {cartItems.map((item) => (
                 <div key={item.id} className="flex items-center justify-between py-2 border-b border-blueprint-100">
                   <div>
-                    <h4 className="font-medium text-blueprint-dark">{item.name}</h4>
+                    <h4 className="font-medium text-blueprint-dark">
+                      {item.name}
+                      {item.category && (
+                        <span className="ml-2 text-xs text-blueprint-gray-soft">({item.category.charAt(0).toUpperCase() + item.category.slice(1)})</span>
+                      )}
+                    </h4>
                     {item.selectedVariation && (
                       <p className="text-sm text-blueprint-gray-soft">Size: {item.selectedVariation.name}</p>
                     )}
@@ -433,34 +441,12 @@ Please confirm this order to proceed. Thank you for choosing CAFERO! 🥟
               <p className="text-sm text-blueprint-gray-soft">Contact: {contactNumber}</p>
               <p className="text-sm text-blueprint-gray-soft">Service: {serviceType.charAt(0).toUpperCase() + serviceType.slice(1)}</p>
               {serviceType === 'delivery' && (
-                <div className="space-y-4">
-                  <label className="block text-sm font-blueprint text-blueprint-dark mb-2">
-                    📍 Delivery Location
-                  </label>
-
-                  <textarea
-                    name="location"
-                    placeholder="House No., Street, Barangay, City"
-                    value={deliveryInfo.location}
-                    onChange={(e) =>
-                      setDeliveryInfo({ ...deliveryInfo, location: e.target.value })
-                    }
-                    required
-                    rows={3}
-                    className="w-full px-4 py-3 border border-blueprint-blue/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-blueprint-blue resize-none"
-                  />
-
-                  <input
-                    type="text"
-                    name="landmark"
-                    placeholder="Landmark (Optional)"
-                    value={deliveryInfo.landmark}
-                    onChange={(e) =>
-                      setDeliveryInfo({ ...deliveryInfo, landmark: e.target.value })
-                    }
-                    className="w-full px-4 py-3 border border-blueprint-blue/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-blueprint-blue"
-                  />
-                </div>
+                <>
+                  <p className="text-sm text-blueprint-gray-soft">Address: {deliveryInfo.location}</p>
+                  {deliveryInfo.landmark && (
+                    <p className="text-sm text-blueprint-gray-soft">Landmark: {deliveryInfo.landmark}</p>
+                  )}
+                </>
               )}
               {serviceType === 'pickup' && (
                 <p className="text-sm text-gray-600">
@@ -472,7 +458,12 @@ Please confirm this order to proceed. Thank you for choosing CAFERO! 🥟
             {cartItems.map((item) => (
               <div key={item.id} className="flex items-center justify-between py-2 border-b border-blueprint-100">
                 <div>
-                  <h4 className="font-medium text-blueprint-dark">{item.name}</h4>
+                  <h4 className="font-medium text-blueprint-dark">
+                    {item.name}
+                    {item.category && (
+                      <span className="ml-2 text-xs text-blueprint-gray-soft">({item.category.charAt(0).toUpperCase() + item.category.slice(1)})</span>
+                    )}
+                  </h4>
                   {item.selectedVariation && (
                     <p className="text-sm text-blueprint-gray-soft">Size: {item.selectedVariation.name}</p>
                   )}

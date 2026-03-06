@@ -18,85 +18,41 @@ interface MenuProps {
   menuItems: MenuItem[];
   addToCart: (item: MenuItem, quantity?: number, variation?: any, addOns?: any[]) => void;
   cartItems: CartItem[];
-  updateQuantity: (id: string, quantity: number) => void;
   selectedCategory: string; // currently chosen by parent/subnav
-  onCategoryClick: (categoryId: string) => void; // parent handler
 }
 
-const Menu: React.FC<MenuProps> = ({ menuItems, addToCart, cartItems, updateQuantity, selectedCategory, onCategoryClick }) => {
+
+const Menu: React.FC<MenuProps> = ({ menuItems, addToCart, cartItems, selectedCategory }) => {
   const { categories } = useCategories();
-  const [activeCategory, setActiveCategory] = React.useState(selectedCategory || 'all');
 
-  // Preload images when menu items change
+  // helper to perform slacky comparisons between stored category value and id
+  const matchesCategory = (itemCat: string, catId: string) => {
+    if (!itemCat) return false;
+    const a = itemCat.toLowerCase().trim();
+    const b = catId.toLowerCase().trim();
+    if (a === b) return true;
+    if (a.replace(/[- ]/g, '') === b.replace(/[- ]/g, '')) return true;
+    const catObj = categories.find(c => c.id === itemCat || c.name.toLowerCase() === a);
+    return catObj?.id === catId;
+  };
+
+  // determine items visible according to selected category
+  const visibleItems = React.useMemo(() => {
+    if (!selectedCategory || selectedCategory === 'all') return menuItems;
+    return menuItems.filter(item => matchesCategory(item.category, selectedCategory));
+  }, [menuItems, selectedCategory, categories]);
+
+  // preload the first batch of visible images
   React.useEffect(() => {
-    if (menuItems.length > 0) {
-      // Preload images for visible category first
-      const itemsToPreload = activeCategory === 'all'
-        ? menuItems.slice(0, 10)
-        : menuItems.filter(item => item.category === activeCategory);
-
-      preloadImages(itemsToPreload);
-
-      // Then preload other images after a short delay
-      const timer = setTimeout(() => {
-        const otherItems = activeCategory === 'all'
-          ? menuItems.slice(10)
-          : menuItems.filter(item => item.category !== activeCategory);
-        preloadImages(otherItems);
-      }, 1000);
-
-      return () => clearTimeout(timer);
+    if (visibleItems.length > 0) {
+      preloadImages(visibleItems.slice(0, 10));
     }
-  }, [menuItems, activeCategory]);
+  }, [visibleItems]);
 
-
-  // when available categories load, ensure activeCategory exists or is 'all'
+  // scroll page back to top when category changes
   React.useEffect(() => {
-    if (categories.length > 0 && activeCategory !== 'all') {
-      if (!categories.find(cat => cat.id === activeCategory)) {
-        const defaultCategory = categories.find(cat => cat.id === 'dim-sum') || categories[0];
-        setActiveCategory(defaultCategory.id);
-      }
-    }
-  }, [categories, activeCategory]);
-
-  // sync with prop and scroll into view when parent selection changes
-  React.useEffect(() => {
-    if (selectedCategory && selectedCategory !== activeCategory) {
-      setActiveCategory(selectedCategory);
-
-      if (selectedCategory !== 'all') {
-        const element = document.getElementById(selectedCategory);
-        if (element) {
-          const headerHeight = 64;
-          const mobileNavHeight = 60;
-          const offset = headerHeight + mobileNavHeight + 20;
-          const elementPosition = element.offsetTop - offset;
-          window.scrollTo({ top: elementPosition, behavior: 'smooth' });
-        }
-      } else {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
-    }
-  }, [selectedCategory, activeCategory]);
-
-  React.useEffect(() => {
-    const handleScroll = () => {
-      const sections = categories.map(cat => document.getElementById(cat.id)).filter(Boolean);
-      const scrollPosition = window.scrollY + 200;
-
-      for (let i = sections.length - 1; i >= 0; i--) {
-        const section = sections[i];
-        if (section && section.offsetTop <= scrollPosition) {
-          setActiveCategory(categories[i].id);
-          break;
-        }
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [categories]);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [selectedCategory]);
 
 
   return (
@@ -110,57 +66,53 @@ const Menu: React.FC<MenuProps> = ({ menuItems, addToCart, cartItems, updateQuan
           </div>
         )}
 
-        {categories.map((category) => {
-          const categoryItems = menuItems.filter(item => item.category === category.id);
-
-          // Show empty categories with a message instead of hiding them
-          if (categoryItems.length === 0 && menuItems.length > 0) {
+        {/** when "all" is selected show a flat grid of all items */}
+        {selectedCategory === 'all' ? (
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 lg:gap-12 justify-center w-full max-w-screen-xl mx-auto">
+            {visibleItems.map(item => (
+              <MenuItemCard
+                key={item.id}
+                item={item}
+                onAddToCart={addToCart}
+                allItems={menuItems}
+                cartItems={cartItems}
+              />
+            ))}
+          </div>
+        ) : (
+          (() => {
+            const cat = categories.find(c => c.id === selectedCategory);
+            const title = cat ? cat.name : selectedCategory;
+            const items = visibleItems;
             return (
-              <section key={category.id} id={category.id} className="menu-section mb-32 px-4 lg:px-8">
+              <section key={selectedCategory} className="menu-section mb-32 px-4 lg:px-8">
                 <div className="flex items-center justify-center mb-20">
                   <div className="text-center">
-                    <h3 className="text-4xl font-blueprint-display accent-theme mb-4">{category.name}</h3>
+                    <h3 className="text-4xl font-blueprint-display accent-theme mb-4">{title}</h3>
                     <div className="w-24 h-1 mt-2 bg-[#8B4513] mx-auto rounded-full"></div>
                   </div>
                 </div>
-                <div className="text-center py-12 bg-card-theme rounded-lg border-2 border-dashed" style={{ borderColor: 'var(--secondary-text)' }}>
-                  <p className="text-theme text-lg" style={{ color: 'var(--secondary-text)' }}>No items in this category yet</p>
-                </div>
+                {items.length === 0 ? (
+                  <div className="text-center py-12 bg-card-theme rounded-lg border-2 border-dashed" style={{ borderColor: 'var(--secondary-text)' }}>
+                    <p className="text-theme text-lg" style={{ color: 'var(--secondary-text)' }}>No items in this category yet</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 lg:gap-12 justify-center w-full max-w-screen-xl mx-auto">
+                    {items.map(item => (
+                      <MenuItemCard
+                        key={item.id}
+                        item={item}
+                        onAddToCart={addToCart}
+                        allItems={menuItems}
+                        cartItems={cartItems}
+                      />
+                    ))}
+                  </div>
+                )}
               </section>
             );
-          }
-
-          if (categoryItems.length === 0) return null;
-
-          return (
-            <section key={category.id} id={category.id} className="menu-section mb-32 px-4 lg:px-8">
-              <div className="flex items-center justify-center mb-20">
-                <div className="text-center">
-                  <h3 className="text-4xl font-blueprint-display accent-theme mb-4">{category.name}</h3>
-                  <div className="w-24 h-1 mt-2 bg-[#8B4513] mx-auto rounded-full"></div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-8 lg:gap-12 w-full">
-                {/* center items and add larger gap for breathing room */}
-                {categoryItems.map((item) => {
-                  const cartItem = cartItems.find(cartItem => cartItem.id === item.id);
-                  return (
-                    <MenuItemCard
-                      key={item.id}
-                      item={item}
-                      onAddToCart={addToCart}
-                      quantity={cartItem?.quantity || 0}
-                      onUpdateQuantity={updateQuantity}
-                      allItems={menuItems}
-                      cartItems={cartItems}
-                    />
-                  );
-                })}
-              </div>
-            </section>
-          );
-        })}
+          })()
+        )}
       </div>
     </main>
   );

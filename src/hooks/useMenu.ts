@@ -44,7 +44,7 @@ export const useMenu = () => {
           name: item.name,
           description: item.description,
           basePrice: item.base_price,
-          category: item.category,
+          category: item.category ? String(item.category).trim().toLowerCase() : '',
           popular: item.popular,
           available: item.available ?? true,
           image: item.image_url || undefined,

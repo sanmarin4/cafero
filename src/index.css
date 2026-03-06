@@ -8,7 +8,7 @@
 /* Custom helpers for CAFERO palette */
 .bg-blueprint-off-white { background-color: #FFFEF7; }
 .bg-blueprint-cream { background-color: #FAF7F0; }
-/* blueprint "blue" now tracks --accent-color variable so pink mode works automatically */
+/* blueprint "blue" now tracks --accent-color variable so dark mode works automatically */
 .text-blueprint-blue { color: var(--accent-color); }
 .bg-blueprint-blue { background-color: var(--accent-color); }
 .border-blueprint-blue { border-color: var(--accent-color); }
@@ -61,7 +61,13 @@ img {
 }
 
 /* CAFERO Paper Texture Effect */
+html {
+  scroll-behavior: smooth;
+  overflow-x: hidden;
+}
+
 body {
+  overflow-x: hidden;
   background-color: #FFFEF7;
   background-image: 
     radial-gradient(circle at 1px 1px, rgba(139, 69, 19, 0.15) 1px, transparent 0);
@@ -153,7 +159,7 @@ body {
   }
 }
 
-/* theme variables for default and pink mode */
+/* theme variables for default and dark mode */
 :root {
   --bg-color: #FFFEF7; /* off-white */
   --text-color: #3D2914; /* dark brown */
@@ -162,12 +168,12 @@ body {
   --card-bg-color: #FFFFFF;
 }
 
-.pink-mode {
-  --bg-color: #ffe4e6; /* soft pink */
-  --text-color: #6f2d5c; /* dark rose */
-  --accent-color: #d63384; /* vibrant pink */
-  --secondary-text: #a870a0;
-  --card-bg-color: #fff0f6;
+.dark-mode {
+  --bg-color: #1E1E1E; /* dark background */
+  --text-color: #F0F0F0; /* light text */
+  --accent-color: #C6940D; /* warm golden accent */
+  --secondary-text: #A0A0A0;
+  --card-bg-color: #2A2A2A;
 }
 
 /* helper utilities using variables */

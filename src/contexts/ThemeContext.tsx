@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type Theme = 'default' | 'pink';
+export type Theme = 'default' | 'dark';
 
 interface ThemeContextValue {
   theme: Theme;
@@ -16,7 +16,7 @@ export const ThemeProvider: React.FC<React.PropsWithChildren<{}>> = ({ children 
   const [theme, setTheme] = React.useState<Theme>(() => {
     try {
       const saved = localStorage.getItem('theme');
-      return saved === 'pink' ? 'pink' : 'default';
+      return saved === 'dark' ? 'dark' : 'default';
     } catch {
       return 'default';
     }
@@ -24,7 +24,7 @@ export const ThemeProvider: React.FC<React.PropsWithChildren<{}>> = ({ children 
 
   const toggleTheme = () => {
     setTheme(prev => {
-      const next = prev === 'pink' ? 'default' : 'pink';
+      const next = prev === 'dark' ? 'default' : 'dark';
       try {
         localStorage.setItem('theme', next);
       } catch {}
@@ -33,7 +33,7 @@ export const ThemeProvider: React.FC<React.PropsWithChildren<{}>> = ({ children 
   };
 
   React.useEffect(() => {
-    document.body.classList.toggle('pink-mode', theme === 'pink');
+    document.body.classList.toggle('dark-mode', theme === 'dark');
   }, [theme]);
 
   return (

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, Minus, X, ShoppingCart } from 'lucide-react';
 import { MenuItem, Variation, AddOn } from '../types';
+import { useCategories } from '../hooks/useCategories';
 
 // simple reusable warning dialog component
 const WarningDialog: React.FC<{ message: string; onConfirm: () => void; onCancel: () => void }> = ({ message, onConfirm, onCancel }) => {
@@ -30,8 +31,6 @@ const WarningDialog: React.FC<{ message: string; onConfirm: () => void; onCancel
 interface MenuItemCardProps {
   item: MenuItem;
   onAddToCart: (item: MenuItem, quantity?: number, variations?: Variation | Variation[], addOns?: AddOn[]) => void;
-  quantity: number;
-  onUpdateQuantity: (id: string, quantity: number) => void;
   allItems?: MenuItem[];
   cartItems?: { id: string; quantity: number }[];
 }
@@ -39,11 +38,11 @@ interface MenuItemCardProps {
 const MenuItemCard: React.FC<MenuItemCardProps> = ({
   item,
   onAddToCart,
-  quantity,
-  onUpdateQuantity,
   allItems = [],
   cartItems = [],
 }) => {
+  const { categories } = useCategories();
+  const categoryName = categories.find(c => c.id === item.category)?.name || item.category;
   const [showCustomization, setShowCustomization] = useState(false);
   const [selectedAddOns, setSelectedAddOns] = useState<(AddOn & { quantity: number })[]>([]);
 
@@ -112,15 +111,6 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
     });
   };
 
-  const handleIncrement = () => {
-    onUpdateQuantity(item.id, quantity + 1);
-  };
-
-  const handleDecrement = () => {
-    if (quantity > 0) {
-      onUpdateQuantity(item.id, quantity - 1);
-    }
-  };
 
   const updateAddOnQuantity = (addOn: AddOn, quantity: number) => {
     setSelectedAddOns(prev => {
@@ -164,121 +154,77 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
           onCancel={() => setShowAlert(false)}
         />
       )}
-      <div className="w-full max-w-[360px]">
-        {/* constrain width and center card on larger screens */}
-        {/* Card Container - Blueish Gradient Design */}
-        <div className={`relative aspect-square rounded-2xl overflow-hidden cafero-card menu-card transition-transform duration-300 group ${!item.available ? 'opacity-60' : ''} hover:scale-105 hover:shadow-xl`}
-          style={{
-            background: 'linear-gradient(135deg, #8B4513 0%, #A0522D 25%, #CD853F 50%, #8B4513 75%, #654321 100%)',
-          }}>
-
-          {/* Product Image - Covering the entire box */}
-          <div className="absolute inset-0 z-10">
-            {item.image ? (
-              <img
-                src={item.image}
-                alt={item.name}
-                className="w-full h-full object-cover rounded-2xl transition-transform duration-300 group-hover:scale-105"
-                loading="lazy"
-                decoding="async"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                  e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                }}
-              />
-            ) : null}
-            <div className={`absolute inset-0 flex items-center justify-center ${item.image ? 'hidden' : ''}`}>
-              <div className="text-6xl opacity-30" style={{ color: '#8B4513' }}>☕</div>
-            </div>
-          </div>
-
-          {/* Popular Badge - Top Right */}
+      <div className="w-full max-w-[360px] mx-auto">
+        <div
+          className={`bg-blueprint-blue-100 rounded-xl shadow-sm transition-transform duration-200 hover:scale-105 hover:shadow-md relative overflow-hidden ${!item.available ? 'opacity-50' : ''}`}
+          style={{ padding: '16px' }}
+        >
+          {/* badges */}
           {item.popular && (
-            <div className="absolute top-3 right-3 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full z-20">
+            <div className="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full z-10">
               Popular
             </div>
           )}
-
           {!item.available && (
-            <div className="absolute top-3 left-3 bg-gray-500 text-white text-xs font-bold px-2 py-1 rounded-full z-20">
+            <div className="absolute top-2 left-2 bg-gray-500 text-white text-xs font-bold px-2 py-1 rounded-full z-10">
               Unavailable
             </div>
           )}
 
-          {/* Add to Cart Button - Bottom Right Corner */}
-          <div className="absolute bottom-2 right-2 z-20">
-            {!item.available ? (
-              <button
-                disabled
-                className="w-7 h-7 md:w-10 md:h-10 bg-gray-200 text-gray-500 rounded-full cursor-not-allowed flex items-center justify-center"
-                style={{ boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)' }}
-              >
-                <X className="h-3.5 w-3.5 md:h-5 md:w-5" />
-              </button>
-            ) : quantity === 0 ? (
-              <button
-                onClick={handleAddToCart}
-                className="w-7 h-7 md:w-10 md:h-10 bg-white rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 hover:bg-amber-100"
-                style={{
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-                  strokeWidth: '2.5px'
+          {/* image area */}
+          <div className="w-full flex items-center justify-center bg-white overflow-hidden rounded-lg shadow-md p-4 border border-gray-200">
+            {item.image ? (
+              <img
+                src={item.image}
+                alt={item.name}
+                className="object-contain max-h-36"
+                loading="lazy"
+                decoding="async"
+                style={{ filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.1))' }}
+                onError={e => {
+                  e.currentTarget.style.display = 'none';
                 }}
-              >
-                <Plus className="h-3.5 w-3.5 md:h-5 md:w-5" style={{ color: '#8B4513' }} />
-              </button>
+              />
             ) : (
-              <div className="flex items-center space-x-0.5 md:space-x-1.5 bg-white rounded-full p-0.5 md:p-1.5" style={{ boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)' }}>
-                <button
-                  onClick={handleDecrement}
-                  className="w-5 h-5 md:w-7 md:h-7 hover:bg-gray-100 rounded-full transition-colors duration-200 flex items-center justify-center"
-                >
-                  <Minus className="h-2.5 w-2.5 md:h-3.5 md:w-3.5" style={{ color: '#8B4513' }} />
-                </button>
-                <span className="font-semibold min-w-[16px] md:min-w-[24px] text-center text-xs md:text-base" style={{ color: '#1E1E1E' }}>{quantity}</span>
-                <button
-                  onClick={handleIncrement}
-                  className="w-5 h-5 md:w-7 md:h-7 hover:bg-gray-100 rounded-full transition-colors duration-200 flex items-center justify-center"
-                >
-                  <Plus className="h-2.5 w-2.5 md:h-3.5 md:w-3.5" style={{ color: '#8B4513' }} />
-                </button>
-              </div>
+              <div className="text-6xl opacity-30" style={{ color: '#8B4513' }}>☕</div>
             )}
           </div>
-        </div>
 
-        {/* Text Section - Below Card */}
-        <div className="mt-3 text-center">
-          {/* Product Title */}
-          <h4 className="text-sm md:text-base font-semibold leading-tight mb-1" style={{
-
-            color: '#1E1E1E',
-            fontSize: '14px',
-            fontWeight: '600',
-            lineHeight: '1.3',
-            maxHeight: '2.6em',
-            overflow: 'hidden',
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical'
-          }}>
-            {item.name}
-          </h4>
-
-          {/* Product Price */}
-          <div className="text-sm md:text-base" style={{
-            color: '#666666',
-            fontSize: '13px',
-            fontWeight: '400',
-            lineHeight: '1.4'
-          }}>
-            {item.isOnDiscount && item.discountPrice ? (
-              <div className="flex items-center space-x-2">
-                <span>from ₱{item.discountPrice.toFixed(0)}</span>
-                <span className="text-xs md:text-sm line-through opacity-75">₱{item.basePrice.toFixed(0)}</span>
-              </div>
-            ) : (
-              <span>from ₱{item.basePrice.toFixed(0)}</span>
+          {/* text & footer */}
+          <div className="mt-4 flex flex-col h-full">
+            <h4 className="font-semibold text-base text-[#1E1E1E] line-clamp-2 mb-3">
+              {item.name}
+            </h4>
+            {item.description && (
+              <p className="text-sm text-[#666] mb-2 line-clamp-2">
+                {item.description}
+              </p>
             )}
+            {categoryName && (
+              <span className="inline-block px-2 py-0.5 text-xs font-medium rounded-full bg-blueprint-blue-50 text-blueprint-blue mb-2">
+                {categoryName}
+              </span>
+            )}
+
+            <div className="mt-auto flex items-center justify-between">
+              <span className="font-semibold text-lg text-[#1E1E1E]">
+                {item.isOnDiscount && item.discountPrice ? (
+                  <>
+                    <span>from ₱{item.discountPrice.toFixed(0)}</span>
+                    <span className="line-through text-xs opacity-75 ml-1">₱{item.basePrice.toFixed(0)}</span>
+                  </>
+                ) : (
+                  <span>from ₱{item.basePrice.toFixed(0)}</span>
+                )}
+              </span>
+              <button
+                onClick={handleAddToCart}
+                disabled={!item.available}
+                className="bg-white text-blueprint-blue px-3 py-1 rounded-full text-sm font-semibold shadow-sm border border-blueprint-blue hover:bg-blueprint-blue-50 transition"
+              >
+                Add to Cart
+              </button>
+            </div>
           </div>
         </div>
       </div>

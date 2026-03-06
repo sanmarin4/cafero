@@ -10,33 +10,33 @@ const SubNav: React.FC<SubNavProps> = ({ selectedCategory, onCategoryClick }) =>
   const { categories, loading } = useCategories();
 
   return (
-    <div className="sticky top-20 z-40 bg-blueprint-off-white/95 backdrop-blur-md border-b border-blueprint-blue/20">
+    <div className="sticky top-20 z-40 bg-blueprint-blue-100/90 backdrop-blur-sm border-b border-blueprint-blue-50">
       <div className="w-full px-6 sm:px-12 lg:px-16 xl:px-24">
-        <div className="flex items-center justify-start gap-4 overflow-x-auto py-6 scrollbar-hide w-full">
+        <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6 lg:gap-8 py-6 scrollbar-hide w-full bg-blueprint-blue-50/50" style={{ padding:'0 16px' }}>
           {loading ? (
             <div className="flex space-x-6">
               {[1, 2, 3, 4, 5].map(i => (
-                <div key={i} className="h-10 w-24 bg-[#5C4033]/10 rounded-lg animate-pulse" />
+                <div key={i} className="h-10 w-24 bg-[#C8B69B]/20 rounded-lg animate-pulse" />
               ))}
             </div>
           ) : (
             <>
               <button
                 onClick={() => onCategoryClick('all')}
-                className={`flex-shrink-0 px-8 py-3 rounded-2xl text-base font-bold transition-all duration-200 shadow-sm ${selectedCategory === 'all'
-                  ? 'bg-[#8B4513] text-white shadow-md border-transparent border'
-                  : 'bg-white text-[#8B4513] hover:bg-[#8B4513]/5 border border-[#EBEBEB]'
+                className={`flex-shrink-0 whitespace-nowrap min-w-max px-4 py-2 md:px-8 md:py-3 rounded-full text-sm md:text-base font-semibold transition-all duration-200 ${selectedCategory === 'all'
+                  ? 'bg-blueprint-blue text-white shadow-md'
+                  : 'bg-blueprint-blue-50 text-blueprint-blue hover:bg-blueprint-blue/60 border border-blueprint-blue-50 cursor-pointer'
                   }`}
               >
-                All Items
+                All
               </button>
               {categories.map((c) => (
                 <button
                   key={c.id}
                   onClick={() => onCategoryClick(c.id)}
-                  className={`flex-shrink-0 px-8 py-3 rounded-2xl text-base font-bold transition-all duration-200 flex items-center space-x-2 shadow-sm ${selectedCategory === c.id
-                    ? 'bg-[#8B4513] text-white shadow-md border-transparent border'
-                    : 'bg-white text-[#8B4513] hover:bg-[#8B4513]/5 border border-[#EBEBEB]'
+                  className={`flex-shrink-0 whitespace-nowrap min-w-max px-4 py-2 md:px-8 md:py-3 rounded-full text-sm md:text-base font-semibold transition-all duration-200 flex items-center space-x-2 ${selectedCategory === c.id
+                    ? 'bg-blueprint-blue text-white shadow-md'
+                    : 'bg-blueprint-blue-50 text-blueprint-blue hover:bg-blueprint-blue/60 border border-blueprint-blue-50 cursor-pointer'
                     }`}
                 >
                   <span className="text-lg">{c.icon}</span>
